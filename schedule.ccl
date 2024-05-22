@@ -1,0 +1,8 @@
+#schedule.ccl for thorn CCE_Export
+
+schedule CCE_Export at CCTK_ANALYSIS after (calc_np,PsiKadelia,Accelerator_CopyBack)
+{
+  LANG: C
+  OPTIONS: GLOBAL
+} "Export to format needed by CCE"
+

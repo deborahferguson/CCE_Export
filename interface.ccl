@@ -1,0 +1,4 @@
+#interface.ccl for thorn CCE_Export
+implements: cce_export
+inherits:   Grid 
+
