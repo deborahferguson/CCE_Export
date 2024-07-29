@@ -1,80 +1,18 @@
 #param.ccl for thorn CCE_Export
 
-restricted:
-
-STRING out_dir "Output directory for Extract's files, overrides IO::out_dir" STEERABLE = RECOVER
-{
-  ".+" :: "A valid directory name"
-  "^$" :: "An empty string to choose the default from IO::out_dir"
-} ""
-
-CCTK_INT out_every "How often to output" \
-STEERABLE=recover
+CCTK_INT out_every "How often to output the metric data" STEERABLE=recover
 {
   0   :: "no output"
-  1:* :: "output every to many iterations"
+  1:* :: "output every x iterations"
 } 1
 
-CCTK_INT out_1d_every "How often to output 1d data" \
-STEERABLE=recover
+CCTK_INT nradii "How many radii to export the data on" STEERABLE=recover
 {
-  0   :: "no output"
-  1:* :: "output every to many iterations"
-} 0
-
-#physical params:
-CCTK_INT nradii "How many extraction radii?" \
-STEERABLE=recover
-{
-  0:100 :: ""
+  0:100 :: "number of radii"
 } 1
 
-
-CCTK_REAL radius[101] "The radii for extraction" \
-STEERABLE=recover
+CCTK_REAL radius[101] "Radii to export the metric data on" STEERABLE=recover
 {
-  0.0:* :: "Please keep it in the grid"
+  0.0:* :: "Extraction radius"
 } 0.0
 
-CCTK_INT ntheta "How many points in the theta direction?" \
-STEERABLE=recover
-{
-  0:* :: "Positive please"
-} 50
-
-CCTK_INT nphi "How many points in the phi direction?" \
-STEERABLE=recover
-{
-  1:* :: ""
-} 100
-
-CCTK_BOOLEAN verbose "Output detailed information about what is happening"
-{
-} "no"
-
-# this maximum must match max_l_modes-1 in cce_multipole.cc
-CCTK_INT l_max "The maximum l mode to extract" STEERABLE=always
-{
-  0:9 :: "l >= 0"
-} 2
-
-CCTK_BOOLEAN output_ascii "Output a simple ASCII file for each mode at each radius"
-{
-} "yes"
-
-CCTK_BOOLEAN output_hdf5 "Output an HDF5 file for each variable containing one dataset per mode at each radius"
-{
-} "no"
-
-CCTK_INT hdf5_chunk_size "How many iterations to preallocate in extensible HDF5 datasets"
-{
-  1:* :: "Any integer"
-} 200
-
-
-#############################################################################
-### import IOUtil parameters
-#############################################################################
-
-shares: IO
-USES STRING out_dir AS io_out_dir

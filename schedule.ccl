@@ -4,5 +4,4 @@ schedule CCE_Export at CCTK_ANALYSIS after (calc_np,PsiKadelia,Accelerator_CopyB
 {
   LANG: C
   OPTIONS: GLOBAL
-} "Export to format needed by CCE"
-
+} "Export metric data on sphere for CCE"
