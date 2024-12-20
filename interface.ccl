@@ -1,5 +1,3 @@
 #interface.ccl for thorn CCE_Export
-implements: cce_export
-inherits: Multipole
-
-USES FUNCTION Multipole_ScaleCartesian
+implements: CCE_Export
+inherits: ADMBase
