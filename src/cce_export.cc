@@ -140,21 +140,25 @@ int l_m_to_index(int l, int m)
   return l*l + l + m;
 }
 
-int factorial(int x)
+CCTK_REAL factorial(CCTK_REAL x)
 {
-  if(x==0){
-    return 1;
+  printf("factorial of %f: ", x);
+  CCTK_REAL answer = 1;
+  
+  while(x>0){
+    answer *= x;
+    x-=1;
   }
-  int answer = 1;
-  for(int i=1; i<x+1; i++){
-    answer *= i;
-  }
+
+  printf("%f\n", answer);
   return answer;
 }
 
-int Binomial_Coefficient(int n, int k)
+CCTK_REAL Binomial_Coefficient(CCTK_REAL n, CCTK_REAL k)
 {
-  return factorial(n)/(factorial(k)*factorial(n-k));
+  CCTK_REAL answer = factorial(n)/(factorial(k)*factorial(n-k));
+  printf("binomial coefficient of %f, %f: %f\n", n, k, answer);
+  return answer;
 }
 
 CCTK_REAL Legendre_Polynomial(int l, int m, CCTK_REAL x)
@@ -165,18 +169,21 @@ CCTK_REAL Legendre_Polynomial(int l, int m, CCTK_REAL x)
     m = -m;
   }
   printf("l, m, x: %d, %d, %d\n", l, m, x);
-  CCTK_REAL P_lm_multiplicative_term = pow(-1, m) * pow(2.0, l) * pow(1-x*x, m/2);
+  CCTK_REAL P_lm_multiplicative_term = pow(-1, m) * pow(2.0, l) * pow(1-x*x, m/2.0);
   printf("P_lm_multiplicative_term: %f\n", P_lm_multiplicative_term);
   CCTK_REAL P_lm_summation_term = 0;
   for(int k=m; k<l+1; k++){
     //printf("k: %d\n", k);
-    P_lm_summation_term += factorial(k)/factorial(k-m)*pow(x, k-m)*Binomial_Coefficient(l, k)*Binomial_Coefficient((l+k-1)/2, l);
+    CCTK_REAL temp = factorial(k)/factorial(k-m)*pow(x, k-m)*Binomial_Coefficient(l, k)*Binomial_Coefficient((l+k-1)/2.0, l);
+    printf("k=%d summation term: %f\n", k, temp);
+    P_lm_summation_term += temp;
   }
   printf("P_lm_summation_term: %f\n", P_lm_summation_term);
   CCTK_REAL P_lm = P_lm_multiplicative_term * P_lm_summation_term;
   if(negative_m){
     P_lm *= pow(-1, m)*factorial(l-m)/factorial(l+m);
   }
+  printf("l, m, x, P_lm: %d, %d, %f, %f\n", l, m, x, P_lm);
   return P_lm;
 }
 
@@ -195,6 +202,7 @@ void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, vector<vector<CC
       CCTK_REAL Y_lm_coefficient = pow(-1, m) * sqrt((2*l+1)*factorial(l-m)/(4*PI*factorial(l+m)));
       printf("Y_lm_coefficient: %f\n", Y_lm_coefficient);
       for(int array_index=0; array_index<array_size; array_index++){
+	printf("about to compute Plm with %d, %d, %f\n", l, m, cos(th.at(array_index)));
 	CCTK_REAL P_lm = Legendre_Polynomial(l, m, cos(th.at(array_index)));
 	printf("th, cos(th), P_lm: %f, %f, %f\n", th[array_index], cos(th[array_index]), P_lm);
 	re_ylms.at(ylm_index).at(array_index) = Y_lm_coefficient * P_lm * cos(m*ph[array_index]);
@@ -408,45 +416,45 @@ void CCE_Export(CCTK_ARGUMENTS)
     printf("About to compute ylms\n");
     Compute_Ylms(th, ph, re_ylms, im_ylms, lmax, array_size);
 
-    // // print 0 0 mode
-    // printf("Ylms for 0 0 mode\n");
-    // printf("th\tph\tre(ylm)\tim(ylm)\n");
-    // int mode_index = l_m_to_index(0, 0);
-    // for(int array_index=0; array_index<array_size; array_index++){
-    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
-    // }
+    // print 0 0 mode
+    printf("Ylms for 0 0 mode\n");
+    printf("th\tph\tre(ylm)\tim(ylm)\n");
+    int mode_index = l_m_to_index(0, 0);
+    for(int array_index=0; array_index<array_size; array_index++){
+      printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
+    }
 
-    // // print 1 -1 mode
-    // printf("Ylms for 1 -1 mode\n");
-    // printf("th\tph\tre(ylm)\tim(ylm)\n");
-    // mode_index = l_m_to_index(1, -1);
-    // for(int array_index=0; array_index<array_size; array_index++){
-    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
-    // }
+    // print 1 -1 mode
+    printf("Ylms for 1 -1 mode\n");
+    printf("th\tph\tre(ylm)\tim(ylm)\n");
+    mode_index = l_m_to_index(1, -1);
+    for(int array_index=0; array_index<array_size; array_index++){
+      printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
+    }
 
-    // // print 1 0 mode
-    // printf("Ylms for 1 0 mode\n");
-    // printf("th\tph\tre(ylm)\tim(ylm)\n");
-    // mode_index = l_m_to_index(1, 0);
-    // for(int array_index=0; array_index<array_size; array_index++){
-    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
-    // }
+    // print 1 0 mode
+    printf("Ylms for 1 0 mode\n");
+    printf("th\tph\tre(ylm)\tim(ylm)\n");
+    mode_index = l_m_to_index(1, 0);
+    for(int array_index=0; array_index<array_size; array_index++){
+      printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
+    }
 
-    // // print 1 1 mode
-    // printf("Ylms for 1 1 mode\n");
-    // printf("th\tph\tre(ylm)\tim(ylm)\n");
-    // mode_index = l_m_to_index(1, 1);
-    // for(int array_index=0; array_index<array_size; array_index++){
-    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
-    // }
+    // print 1 1 mode
+    printf("Ylms for 1 1 mode\n");
+    printf("th\tph\tre(ylm)\tim(ylm)\n");
+    mode_index = l_m_to_index(1, 1);
+    for(int array_index=0; array_index<array_size; array_index++){
+      printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
+    }
 
-    // // print 2 2 mode
-    // printf("Ylms for 2 2 mode\n");
-    // printf("th\tph\tre(ylm)\tim(ylm)\n");
-    // mode_index = l_m_to_index(2, 2);
-    // for(int array_index=0; array_index<array_size; array_index++){
-    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
-    // }
+    // print 2 2 mode
+    printf("Ylms for 2 2 mode\n");
+    printf("th\tph\tre(ylm)\tim(ylm)\n");
+    mode_index = l_m_to_index(2, 2);
+    for(int array_index=0; array_index<array_size; array_index++){
+      printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
+    }
 
     // Decompose g, dr_g, dt_g
     // re_g[i][j][mode], im_g[i][j][mode]

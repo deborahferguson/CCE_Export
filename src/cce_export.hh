@@ -19,9 +19,9 @@ void Decompose_Spherical_Harmonics(vector<CCTK_REAL> &th, vector<CCTK_REAL> &phi
 
 int l_m_to_index(int l, int m);
 
-int factorial(int x);
+CCTK_REAL factorial(CCTK_REAL x);
 
-int Binomial_Coefficient(int n, int k);
+CCTK_REAL Binomial_Coefficient(CCTK_REAL n, CCTK_REAL k);
 
 CCTK_REAL Legendre_Polynomial(int l, int m, CCTK_REAL x);
 
