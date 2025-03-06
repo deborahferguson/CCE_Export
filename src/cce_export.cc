@@ -142,49 +142,33 @@ int l_m_to_index(int l, int m)
 
 CCTK_REAL factorial(CCTK_REAL x)
 {
-  printf("factorial of %f: ", x);
   CCTK_REAL answer = 1;
   
   while(x>0){
     answer *= x;
     x-=1;
   }
-
-  printf("%f\n", answer);
   return answer;
 }
 
-CCTK_REAL Binomial_Coefficient(CCTK_REAL n, CCTK_REAL k)
+static inline int imin(int a, int b)
 {
-  CCTK_REAL answer = factorial(n)/(factorial(k)*factorial(n-k));
-  printf("binomial coefficient of %f, %f: %f\n", n, k, answer);
-  return answer;
+  return a < b ? a : b;
 }
 
-CCTK_REAL Legendre_Polynomial(int l, int m, CCTK_REAL x)
+static inline int imax(int a, int b)
 {
-  bool negative_m = false;
-  if(m<0){
-    negative_m = true;
-    m = -m;
-  }
-  printf("l, m, x: %d, %d, %d\n", l, m, x);
-  CCTK_REAL P_lm_multiplicative_term = pow(-1, m) * pow(2.0, l) * pow(1-x*x, m/2.0);
-  printf("P_lm_multiplicative_term: %f\n", P_lm_multiplicative_term);
-  CCTK_REAL P_lm_summation_term = 0;
-  for(int k=m; k<l+1; k++){
-    //printf("k: %d\n", k);
-    CCTK_REAL temp = factorial(k)/factorial(k-m)*pow(x, k-m)*Binomial_Coefficient(l, k)*Binomial_Coefficient((l+k-1)/2.0, l);
-    printf("k=%d summation term: %f\n", k, temp);
-    P_lm_summation_term += temp;
-  }
-  printf("P_lm_summation_term: %f\n", P_lm_summation_term);
-  CCTK_REAL P_lm = P_lm_multiplicative_term * P_lm_summation_term;
-  if(negative_m){
-    P_lm *= pow(-1, m)*factorial(l-m)/factorial(l+m);
-  }
-  printf("l, m, x, P_lm: %d, %d, %f, %f\n", l, m, x, P_lm);
-  return P_lm;
+  return a > b ? a : b;
+}
+
+static inline double combination(int n, int m)
+{
+  // Binomial coefficient is undefined if these conditions do not hold                                                                                                                                                                                                                                                                                                                     
+  assert(n >= 0);
+  assert(m >= 0);
+  assert(m <= n);
+
+  return factorial(n) / (factorial(m) * factorial(n-m));
 }
 
 void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, vector<vector<CCTK_REAL>> &re_ylms, vector<vector<CCTK_REAL>> &im_ylms, int lmax, int array_size)
@@ -192,21 +176,19 @@ void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, vector<vector<CC
   const CCTK_REAL PI = acos(-1.0);
   for(int l=0; l<lmax+1; l++){
     for(int m=-l; m<l+1; m++){
-      printf("%d,%d\n", l, m);
       int ylm_index = l_m_to_index(l, m);
-      // printf("index: %d\n", ylm_index);
-      // printf("pow(-1, m): %d\n", pow(-1, m));
-      // printf("factorial(l-m): %d\n", factorial(l-m));
-      // printf("factorial(l+m): %d\n", factorial(l+m));
-      // printf("PI: %f\n", PI);
-      CCTK_REAL Y_lm_coefficient = pow(-1, m) * sqrt((2*l+1)*factorial(l-m)/(4*PI*factorial(l+m)));
-      printf("Y_lm_coefficient: %f\n", Y_lm_coefficient);
       for(int array_index=0; array_index<array_size; array_index++){
-	printf("about to compute Plm with %d, %d, %f\n", l, m, cos(th.at(array_index)));
-	CCTK_REAL P_lm = Legendre_Polynomial(l, m, cos(th.at(array_index)));
-	printf("th, cos(th), P_lm: %f, %f, %f\n", th[array_index], cos(th[array_index]), P_lm);
-	re_ylms.at(ylm_index).at(array_index) = Y_lm_coefficient * P_lm * cos(m*ph[array_index]);
-	im_ylms.at(ylm_index).at(array_index) = Y_lm_coefficient * P_lm * sin(m*ph[array_index]);      
+	double all_coeff = 0, sum = 0;
+	all_coeff = pow(-1.0, m);
+	all_coeff *= sqrt(factorial(l+m)*factorial(l-m)*(2*l+1) / (4.*PI*factorial(l)*factorial(l)));
+	sum = 0.;
+	for(int i = imax(m, 0); i <= imin(l + m, l); i++){
+	  double sum_coeff = combination(l, i) * combination(l, i-m);
+	  sum += sum_coeff * pow(-1.0, l-i) * pow(cos(th[array_index]/2.), 2 * i - m) *
+	    pow(sin(th[array_index]/2.), 2*(l-i)+m);
+	}
+	re_ylms.at(ylm_index).at(array_index) = all_coeff*sum*cos(m*ph[array_index]);
+	im_ylms.at(ylm_index).at(array_index) = all_coeff*sum*sin(m*ph[array_index]);
       }
     }
   }
@@ -221,8 +203,8 @@ void CCE_Export(CCTK_ARGUMENTS)
 
   static string index_to_component[] = {"x", "y", "z"};
 
-  const int ntheta = 10;//50; 
-  const int nphi = 20;//100;
+  const int ntheta = 50; 
+  const int nphi = 100;
   const int array_size=ntheta*nphi;
 
   // extrinsic curvature, 3d vector (3, 3, array_size)
@@ -345,6 +327,7 @@ void CCE_Export(CCTK_ARGUMENTS)
     //            + beta^x dx g_ij + beta^y dy g_ij + beta^z dz g_ij 
     //            + g_xi dj beta^x + g_yi dj beta^y + g_zi dj beta^z
     //            + g_xj di beta^x + g_yj di beta^y + g_zj di beta^z
+    
     vector<vector<CCTK_REAL>> *di_beta;
     vector<vector<CCTK_REAL>> *dj_beta;
     vector<CCTK_REAL> *g0i;
