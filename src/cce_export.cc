@@ -3,6 +3,59 @@
 
 using namespace std;
 
+// Copied from Multipole
+#define idx(xx,yy) (assert((xx) <= nx), assert((xx) >= 0), assert((yy) <= ny), assert((yy) >= 0), ((xx) + (yy) * (nx+1)))
+
+// Copied from Multipole
+CCTK_REAL CCE_Export_Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_REAL hx, CCTK_REAL hy)
+{
+  CCTK_REAL integrand_sum = 0;
+  int ix = 0, iy = 0;
+
+  assert(nx > 0); assert(ny > 0); assert (f);
+  assert(nx % 2 == 0);
+  assert(ny % 2 == 0);
+
+  int px = nx / 2;
+  int py = ny / 2;
+
+  // Corners                                                                                                                                                                                          
+  integrand_sum += f[idx(0,0)] + f[idx(nx,0)] + f[idx(0,ny)] + f[idx(nx,ny)];
+
+  // Edges                                                                                                                                                                                            
+  for (iy = 1; iy <= py; iy++)
+    integrand_sum += 4 * f[idx(0,2*iy-1)] + 4 * f[idx(nx,2*iy-1)];
+
+  for (iy = 1; iy <= py-1; iy++)
+    integrand_sum += 2 * f[idx(0,2*iy)] + 2 * f[idx(nx,2*iy)];
+
+  for (ix = 1; ix <= px; ix++)
+    integrand_sum += 4 * f[idx(2*ix-1,0)] + 4 * f[idx(2*ix-1,ny)];
+
+  for (ix = 1; ix <= px-1; ix++)
+    integrand_sum += 2 * f[idx(2*ix,0)] + 2 * f[idx(2*ix,ny)];
+
+  // Interior                                                                                                                                                                                         
+  for (iy = 1; iy <= py; iy++)
+    for (ix = 1; ix <= px; ix++)
+      integrand_sum += 16 * f[idx(2*ix-1,2*iy-1)];
+
+  for (iy = 1; iy <= py-1; iy++)
+    for (ix = 1; ix <= px; ix++)
+      integrand_sum += 8 * f[idx(2*ix-1,2*iy)];
+
+  for (iy = 1; iy <= py; iy++)
+    for (ix = 1; ix <= px-1; ix++)
+      integrand_sum += 8 * f[idx(2*ix,2*iy-1)];
+
+  for (iy = 1; iy <= py-1; iy++)
+    for (ix = 1; ix <= px-1; ix++)
+      integrand_sum += 4 * f[idx(2*ix,2*iy)];
+
+  return ((double) 1 / (double) 9) * hx * hy * integrand_sum;
+}
+
+
 void CCE_Export_Interpolate_On_Sphere_With_Derivatives(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs, vector<CCTK_REAL> &ys, vector<CCTK_REAL> &zs, string name, vector<CCTK_REAL> &sphere_values, vector<CCTK_REAL> &sphere_dx, vector<CCTK_REAL> &sphere_dy, vector<CCTK_REAL> &sphere_dz, CCTK_INT array_size)
 {
   printf("In interpolate\n");
@@ -125,10 +178,61 @@ void CCE_Export_Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs, vec
 
 }
 
-
-void Decompose_Spherical_Harmonics(vector<CCTK_REAL> &th, vector<CCTK_REAL> &phi, vector<CCTK_REAL> &sphere_values, vector<CCTK_REAL> &re_data, vector<CCTK_REAL> &im_data, int array_size)
+static inline int CCE_Export_Sphere_Index(int it, int ip, int ntheta)
 {
-  
+  return it + (ntheta+1)*ip;
+}
+
+// Copied from Multipole
+void CCE_Export_Integrate(int array_size, int ntheta, int nphi,
+			 vector<CCTK_REAL> &array1r, vector<CCTK_REAL> &array1i,
+			 vector<CCTK_REAL> &array2r,
+			 vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph,
+			 CCTK_REAL *outre, CCTK_REAL *outim)
+{
+  DECLARE_CCTK_PARAMETERS
+
+  int il = CCE_Export_Sphere_Index(0,0,ntheta);
+  int iu = CCE_Export_Sphere_Index(1,0,ntheta);
+  CCTK_REAL dth = th[iu] - th[il];
+  iu = CCE_Export_Sphere_Index(0,1,ntheta);
+  CCTK_REAL dph = ph[iu] - ph[il];
+
+  static CCTK_REAL *fr = 0;
+  static CCTK_REAL *fi = 0;
+  static bool allocated_memory = false;
+
+  // Construct an array for the real integrand                                                                                                                                                        
+  if (!allocated_memory)
+    {
+      fr = new CCTK_REAL[array_size];
+      fi = new CCTK_REAL[array_size];
+      allocated_memory = true;
+    }
+
+  // the below calculations take the integral of conj(array1)*array2*sin(th)                                                                                                                          
+  for (int i = 0; i < array_size; i++)
+    {
+      fr[i] = (array1r[i] * array2r[i]) * sin(th[i]);
+      fi[i] = ( -1 * array1i[i] * array2r[i] ) * sin(th[i]);
+    }
+
+  if (nphi % 2 != 0 || ntheta % 2 != 0)
+    {
+      CCTK_WARN (CCTK_WARN_ABORT, "The Simpson integration method requires even ntheta and even nphi");
+    }
+  *outre = CCE_Export_Simpson2DIntegral(fr, ntheta, nphi, dth, dph);
+  *outim = CCE_Export_Simpson2DIntegral(fi, ntheta, nphi, dth, dph);
+} 
+
+void Decompose_Spherical_Harmonics(vector<CCTK_REAL> &th, vector<CCTK_REAL> &phi, vector<CCTK_REAL> &sphere_values, vector<CCTK_REAL> &re_data, vector<CCTK_REAL> &im_data, vector<vector<CCTK_REAL>> &re_ylms, vector<vector<CCTK_REAL>> &im_ylms, int array_size, int lmax, int ntheta, int nphi)
+{
+  for(int l=0; l<lmax+1; l++){
+    for(int m=-l; m<l+1; m++){
+      int mode_index = l_m_to_index(l, m);
+      CCE_Export_Integrate(array_size, ntheta, nphi, re_ylms.at(mode_index), im_ylms.at(mode_index), sphere_values, th, phi, &re_data.at(mode_index), &im_data.at(mode_index));
+    }
+  }
 }
 
 // void index_to_l_m(int index, int &l, int &m){
@@ -205,7 +309,8 @@ void CCE_Export(CCTK_ARGUMENTS)
 
   const int ntheta = 50; 
   const int nphi = 100;
-  const int array_size=ntheta*nphi;
+  const int array_size = (ntheta+1)*(nphi+1);
+  // const int array_size=ntheta*nphi;
 
   // extrinsic curvature, 3d vector (3, 3, array_size)
   vector<vector<vector<CCTK_REAL>>> k(3, vector<vector<CCTK_REAL>>(3, vector<CCTK_REAL>(array_size)));
@@ -328,68 +433,82 @@ void CCE_Export(CCTK_ARGUMENTS)
     //            + g_xi dj beta^x + g_yi dj beta^y + g_zi dj beta^z
     //            + g_xj di beta^x + g_yj di beta^y + g_zj di beta^z
     
-    vector<vector<CCTK_REAL>> *di_beta;
-    vector<vector<CCTK_REAL>> *dj_beta;
-    vector<CCTK_REAL> *g0i;
-    vector<CCTK_REAL> *g1i;
-    vector<CCTK_REAL> *g2i;
-    vector<CCTK_REAL> *g0j;
-    vector<CCTK_REAL> *g1j;
-    vector<CCTK_REAL> *g2j;
-    for(int i=0; i<3; i++){
-      if(i==0){
-	di_beta = &dx_beta;
-	g0i = &g.at(0).at(0);
-	g1i = &g.at(0).at(1);
-	g2i = &g.at(0).at(2);
-      }
-      else if(i==1){
-	di_beta = &dy_beta;
-	g0i = &g.at(0).at(1);
-	g1i = &g.at(1).at(1);
-	g2i = &g.at(1).at(2);
-      }
-      else if(i==2){
-	di_beta = &dz_beta;
-	g0i = &g.at(0).at(2);
-	g1i = &g.at(1).at(2);
-	g2i = &g.at(2).at(2);
-      }
-      for(int j=i; j<3; j++){
-	if(j==0){
-	  dj_beta = &dx_beta;
-	  g0j = &g.at(0).at(0);
-	  g1j = &g.at(0).at(1);
-	  g2j = &g.at(0).at(2);
-	}
-	else if(j==1){
-	  dj_beta = &dy_beta;
-	  g0j = &g.at(0).at(1);
-	  g1j = &g.at(1).at(1);
-	  g2j = &g.at(1).at(2);
-	}
-	else if(j==2){
-	  dj_beta = &dz_beta;
-	  g0j = &g.at(0).at(2);
-	  g1j = &g.at(1).at(2);
-	  g2j = &g.at(2).at(2);
-	}
-	for(int array_index=0; array_index<array_size; array_index++){
-	  dt_g.at(i).at(j).at(array_index) = -2*alpha.at(array_index)*k.at(i).at(j).at(array_index) + \
-	    beta.at(0).at(array_index)*dx_g.at(i).at(j).at(array_index) + \
-	    beta.at(1).at(array_index)*dy_g.at(i).at(j).at(array_index) + \
-	    beta.at(2).at(array_index)*dz_g.at(i).at(j).at(array_index) + \
-	    g0i->at(array_index)*dj_beta->at(0).at(array_index) + \
-	    g1i->at(array_index)*dj_beta->at(1).at(array_index) + \
-	    g2i->at(array_index)*dj_beta->at(2).at(array_index) + \
-	    g0j->at(array_index)*di_beta->at(0).at(array_index) + \
-	    g1j->at(array_index)*di_beta->at(1).at(array_index) + \
-	    g2j->at(array_index)*di_beta->at(2).at(array_index);
-	}
-      }
+    // dt g_xx
+    for(int array_index=0; array_index<array_size; array_index++){
+      dt_g.at(0).at(0).at(array_index) = -2*alpha.at(array_index)*k.at(0).at(0).at(array_index) + \
+	beta.at(0).at(array_index)*dx_g.at(0).at(0).at(array_index) +	\
+	beta.at(1).at(array_index)*dy_g.at(0).at(0).at(array_index) +	\
+	beta.at(2).at(array_index)*dz_g.at(0).at(0).at(array_index) +	\
+	g.at(0).at(0).at(array_index)*dx_beta.at(0).at(array_index) +	\
+	g.at(1).at(0).at(array_index)*dx_beta.at(1).at(array_index) +	\
+	g.at(2).at(0).at(array_index)*dx_beta.at(2).at(array_index) +	\
+	g.at(0).at(0).at(array_index)*dx_beta.at(0).at(array_index) +	\
+	g.at(1).at(0).at(array_index)*dx_beta.at(1).at(array_index) +	\
+	g.at(2).at(0).at(array_index)*dx_beta.at(2).at(array_index);
+
+      dt_g.at(0).at(1).at(array_index) = -2*alpha.at(array_index)*k.at(0).at(1).at(array_index) + \
+	beta.at(0).at(array_index)*dx_g.at(0).at(1).at(array_index) +	\
+	beta.at(1).at(array_index)*dy_g.at(0).at(1).at(array_index) +	\
+	beta.at(2).at(array_index)*dz_g.at(0).at(1).at(array_index) +	\
+	g.at(0).at(0).at(array_index)*dy_beta.at(0).at(array_index) +	\
+	g.at(1).at(0).at(array_index)*dy_beta.at(1).at(array_index) +	\
+	g.at(2).at(0).at(array_index)*dy_beta.at(2).at(array_index) +	\
+	g.at(0).at(1).at(array_index)*dx_beta.at(0).at(array_index) +	\
+	g.at(1).at(1).at(array_index)*dx_beta.at(1).at(array_index) +	\
+	g.at(2).at(1).at(array_index)*dx_beta.at(2).at(array_index);
+
+      dt_g.at(0).at(2).at(array_index) = -2*alpha.at(array_index)*k.at(0).at(2).at(array_index) + \
+	beta.at(0).at(array_index)*dx_g.at(0).at(2).at(array_index) +	\
+	beta.at(1).at(array_index)*dy_g.at(0).at(2).at(array_index) +	\
+	beta.at(2).at(array_index)*dz_g.at(0).at(2).at(array_index) +	\
+	g.at(0).at(0).at(array_index)*dz_beta.at(0).at(array_index) +	\
+	g.at(1).at(0).at(array_index)*dz_beta.at(1).at(array_index) +	\
+	g.at(2).at(0).at(array_index)*dz_beta.at(2).at(array_index) +	\
+	g.at(0).at(2).at(array_index)*dx_beta.at(0).at(array_index) +	\
+	g.at(1).at(2).at(array_index)*dx_beta.at(1).at(array_index) +	\
+	g.at(2).at(2).at(array_index)*dx_beta.at(2).at(array_index);
+
+      dt_g.at(1).at(1).at(array_index) = -2*alpha.at(array_index)*k.at(1).at(1).at(array_index) + \
+	beta.at(0).at(array_index)*dx_g.at(1).at(1).at(array_index) +	\
+	beta.at(1).at(array_index)*dy_g.at(1).at(1).at(array_index) +	\
+	beta.at(2).at(array_index)*dz_g.at(1).at(1).at(array_index) +	\
+	g.at(0).at(1).at(array_index)*dy_beta.at(0).at(array_index) +	\
+	g.at(1).at(1).at(array_index)*dy_beta.at(1).at(array_index) +	\
+	g.at(2).at(1).at(array_index)*dy_beta.at(2).at(array_index) +	\
+	g.at(0).at(1).at(array_index)*dy_beta.at(0).at(array_index) +	\
+	g.at(1).at(1).at(array_index)*dy_beta.at(1).at(array_index) +	\
+	g.at(2).at(1).at(array_index)*dy_beta.at(2).at(array_index);
+
+      dt_g.at(1).at(2).at(array_index) = -2*alpha.at(array_index)*k.at(1).at(2).at(array_index) + \
+	beta.at(0).at(array_index)*dx_g.at(1).at(2).at(array_index) +	\
+	beta.at(1).at(array_index)*dy_g.at(1).at(2).at(array_index) +	\
+	beta.at(2).at(array_index)*dz_g.at(1).at(2).at(array_index) +	\
+	g.at(0).at(1).at(array_index)*dz_beta.at(0).at(array_index) +	\
+	g.at(1).at(1).at(array_index)*dz_beta.at(1).at(array_index) +	\
+	g.at(2).at(1).at(array_index)*dz_beta.at(2).at(array_index) +	\
+	g.at(0).at(2).at(array_index)*dy_beta.at(0).at(array_index) +	\
+	g.at(1).at(2).at(array_index)*dy_beta.at(1).at(array_index) +	\
+	g.at(2).at(2).at(array_index)*dy_beta.at(2).at(array_index);
+
+      dt_g.at(2).at(2).at(array_index) = -2*alpha.at(array_index)*k.at(2).at(2).at(array_index) + \
+	beta.at(0).at(array_index)*dx_g.at(2).at(2).at(array_index) +	\
+	beta.at(1).at(array_index)*dy_g.at(2).at(2).at(array_index) +	\
+	beta.at(2).at(array_index)*dz_g.at(2).at(2).at(array_index) +	\
+	g.at(0).at(2).at(array_index)*dz_beta.at(0).at(array_index) +	\
+	g.at(1).at(2).at(array_index)*dz_beta.at(1).at(array_index) +	\
+	g.at(2).at(2).at(array_index)*dz_beta.at(2).at(array_index) +	\
+	g.at(0).at(2).at(array_index)*dz_beta.at(0).at(array_index) +	\
+	g.at(1).at(2).at(array_index)*dz_beta.at(1).at(array_index) +	\
+	g.at(2).at(2).at(array_index)*dz_beta.at(2).at(array_index);
+
+      dt_g.at(1).at(0).at(array_index) = dt_g.at(0).at(1).at(array_index);
+
+      dt_g.at(2).at(0).at(array_index) = dt_g.at(0).at(2).at(array_index);
+
+      dt_g.at(2).at(1).at(array_index) = dt_g.at(1).at(2).at(array_index);
+    
     }
     
-
     // Integrate to obtain spherical harmonic decomposition
     const int lmax = 8;
     const int mode_count = l_m_to_index(lmax, lmax) + 1;
@@ -399,45 +518,45 @@ void CCE_Export(CCTK_ARGUMENTS)
     printf("About to compute ylms\n");
     Compute_Ylms(th, ph, re_ylms, im_ylms, lmax, array_size);
 
-    // print 0 0 mode
-    printf("Ylms for 0 0 mode\n");
-    printf("th\tph\tre(ylm)\tim(ylm)\n");
-    int mode_index = l_m_to_index(0, 0);
-    for(int array_index=0; array_index<array_size; array_index++){
-      printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
-    }
+    // // print 0 0 mode
+    // printf("Ylms for 0 0 mode\n");
+    // printf("th\tph\tre(ylm)\tim(ylm)\n");
+    // int mode_index = l_m_to_index(0, 0);
+    // for(int array_index=0; array_index<array_size; array_index++){
+    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
+    // }
 
-    // print 1 -1 mode
-    printf("Ylms for 1 -1 mode\n");
-    printf("th\tph\tre(ylm)\tim(ylm)\n");
-    mode_index = l_m_to_index(1, -1);
-    for(int array_index=0; array_index<array_size; array_index++){
-      printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
-    }
+    // // print 1 -1 mode
+    // printf("Ylms for 1 -1 mode\n");
+    // printf("th\tph\tre(ylm)\tim(ylm)\n");
+    // mode_index = l_m_to_index(1, -1);
+    // for(int array_index=0; array_index<array_size; array_index++){
+    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
+    // }
 
-    // print 1 0 mode
-    printf("Ylms for 1 0 mode\n");
-    printf("th\tph\tre(ylm)\tim(ylm)\n");
-    mode_index = l_m_to_index(1, 0);
-    for(int array_index=0; array_index<array_size; array_index++){
-      printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
-    }
+    // // print 1 0 mode
+    // printf("Ylms for 1 0 mode\n");
+    // printf("th\tph\tre(ylm)\tim(ylm)\n");
+    // mode_index = l_m_to_index(1, 0);
+    // for(int array_index=0; array_index<array_size; array_index++){
+    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
+    // }
 
-    // print 1 1 mode
-    printf("Ylms for 1 1 mode\n");
-    printf("th\tph\tre(ylm)\tim(ylm)\n");
-    mode_index = l_m_to_index(1, 1);
-    for(int array_index=0; array_index<array_size; array_index++){
-      printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
-    }
+    // // print 1 1 mode
+    // printf("Ylms for 1 1 mode\n");
+    // printf("th\tph\tre(ylm)\tim(ylm)\n");
+    // mode_index = l_m_to_index(1, 1);
+    // for(int array_index=0; array_index<array_size; array_index++){
+    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
+    // }
 
-    // print 2 2 mode
-    printf("Ylms for 2 2 mode\n");
-    printf("th\tph\tre(ylm)\tim(ylm)\n");
-    mode_index = l_m_to_index(2, 2);
-    for(int array_index=0; array_index<array_size; array_index++){
-      printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
-    }
+    // // print 2 2 mode
+    // printf("Ylms for 2 2 mode\n");
+    // printf("th\tph\tre(ylm)\tim(ylm)\n");
+    // mode_index = l_m_to_index(2, 2);
+    // for(int array_index=0; array_index<array_size; array_index++){
+    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index], re_ylms.at(mode_index).at(array_index), im_ylms.at(mode_index).at(array_index));
+    // }
 
     // Decompose g, dr_g, dt_g
     // re_g[i][j][mode], im_g[i][j][mode]
@@ -449,11 +568,13 @@ void CCE_Export(CCTK_ARGUMENTS)
     vector<vector<vector<CCTK_REAL>>> im_dt_g(3, vector<vector<CCTK_REAL>>(3, vector<CCTK_REAL>(mode_count)));
     for(int i=0; i<3; i++){
       for(int j=i; j<3; j++){
-	Decompose_Spherical_Harmonics(th, ph, g.at(i).at(j), re_g.at(i).at(j), im_g.at(i).at(j), array_size);
-	Decompose_Spherical_Harmonics(th, ph, dr_g.at(i).at(j), re_dr_g.at(i).at(j), im_dr_g.at(i).at(j), array_size);
-	Decompose_Spherical_Harmonics(th, ph, dt_g.at(i).at(j), re_dt_g.at(i).at(j), im_dt_g.at(i).at(j), array_size);
+	Decompose_Spherical_Harmonics(th, ph, g.at(i).at(j), re_g.at(i).at(j), im_g.at(i).at(j), re_ylms, im_ylms, array_size, lmax, ntheta, nphi);
+	Decompose_Spherical_Harmonics(th, ph, dr_g.at(i).at(j), re_dr_g.at(i).at(j), im_dr_g.at(i).at(j), re_ylms, im_ylms, array_size, lmax, ntheta, nphi);
+	Decompose_Spherical_Harmonics(th, ph, dt_g.at(i).at(j), re_dt_g.at(i).at(j), im_dt_g.at(i).at(j), re_ylms, im_ylms, array_size, lmax, ntheta, nphi);
       }
     }
+
+    printf("Decomposed metric data\n");
 
     // Decompose beta, dr_beta, dt_beta
     // re_beta[i][mode]
@@ -464,10 +585,12 @@ void CCE_Export(CCTK_ARGUMENTS)
     vector<vector<CCTK_REAL>> re_dt_beta(3, vector<CCTK_REAL>(mode_count));
     vector<vector<CCTK_REAL>> im_dt_beta(3, vector<CCTK_REAL>(mode_count));
     for(int i=0; i<3; i++){
-      Decompose_Spherical_Harmonics(th, ph, beta.at(i), re_beta.at(i), im_beta.at(i), array_size);
-      Decompose_Spherical_Harmonics(th, ph, dr_beta.at(i), re_dr_beta.at(i), im_dr_beta.at(i), array_size);
-      Decompose_Spherical_Harmonics(th, ph, dt_beta.at(i), re_dt_beta.at(i), im_dt_beta.at(i), array_size);
+      Decompose_Spherical_Harmonics(th, ph, beta.at(i), re_beta.at(i), im_beta.at(i), re_ylms, im_ylms, array_size, lmax, ntheta, nphi);
+      Decompose_Spherical_Harmonics(th, ph, dr_beta.at(i), re_dr_beta.at(i), im_dr_beta.at(i), re_ylms, im_ylms, array_size, lmax, ntheta, nphi);
+      Decompose_Spherical_Harmonics(th, ph, dt_beta.at(i), re_dt_beta.at(i), im_dt_beta.at(i), re_ylms, im_ylms, array_size, lmax, ntheta, nphi);
     }
+
+    printf("Decomposed shift data\n");
 
     // Decompose alpha, dr_alpha, dt_alpha
     vector<CCTK_REAL> re_alpha(mode_count);
@@ -476,10 +599,11 @@ void CCE_Export(CCTK_ARGUMENTS)
     vector<CCTK_REAL> im_dr_alpha(mode_count);
     vector<CCTK_REAL> re_dt_alpha(mode_count);
     vector<CCTK_REAL> im_dt_alpha(mode_count);
-    Decompose_Spherical_Harmonics(th, ph, alpha, re_alpha, im_alpha, array_size);
-    Decompose_Spherical_Harmonics(th, ph, dr_alpha, re_dr_alpha, im_dr_alpha, array_size);
-    Decompose_Spherical_Harmonics(th, ph, dt_alpha, re_dt_alpha, im_dt_alpha, array_size);
+    Decompose_Spherical_Harmonics(th, ph, alpha, re_alpha, im_alpha, re_ylms, im_ylms, array_size, lmax, ntheta, nphi);
+    Decompose_Spherical_Harmonics(th, ph, dr_alpha, re_dr_alpha, im_dr_alpha, re_ylms, im_ylms, array_size, lmax, ntheta, nphi);
+    Decompose_Spherical_Harmonics(th, ph, dt_alpha, re_dt_alpha, im_dt_alpha, re_ylms, im_ylms, array_size, lmax, ntheta, nphi);
 
+    printf("Decomposed lapse data\n");
 
     // Store output in h5 file
   }
