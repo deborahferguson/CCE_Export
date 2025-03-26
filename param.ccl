@@ -16,3 +16,20 @@ CCTK_REAL radius[101] "Radii to export the metric data on" STEERABLE=recover
   0.0:* :: "Extraction radius"
 } 0.0
 
+STRING out_dir "Output directory for Extract's files, overrides IO::out_dir" STEERABLE = RECOVER
+{
+  ".+" :: "A valid directory name"
+  "^$" :: "An empty string to choose the default from IO::out_dir"
+} ""
+
+CCTK_INT hdf5_chunk_size "How many iterations to preallocate in extensible HDF5 datasets"
+{
+  1:* :: "Any integer"
+} 200
+
+#############################################################################
+### import IOUtil parameters
+#############################################################################
+
+shares: IO
+USES STRING out_dir AS io_out_dir

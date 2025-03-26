@@ -29,6 +29,17 @@ void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, vector<vector<CC
 
 CCTK_REAL CCE_Export_Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_REAL hx, CCTK_REAL hy);
 
+void Output_Decomposed_Metric_Data(CCTK_ARGUMENTS, vector<vector<vector<CCTK_REAL>>> &re_g, vector<vector<vector<CCTK_REAL>>> &im_g,
+                                   vector<vector<vector<CCTK_REAL>>> &re_dr_g, vector<vector<vector<CCTK_REAL>>> &im_dr_g,
+                                   vector<vector<vector<CCTK_REAL>>> &re_dt_g, vector<vector<vector<CCTK_REAL>>> &im_dt_g,
+                                   vector<vector<CCTK_REAL>> &re_beta, vector<vector<CCTK_REAL>> &im_beta,
+                                   vector<vector<CCTK_REAL>> &re_dr_beta, vector<vector<CCTK_REAL>> &im_dr_beta,
+                                   vector<vector<CCTK_REAL>> &re_dt_beta, vector<vector<CCTK_REAL>> &im_dt_beta,
+                                   vector<CCTK_REAL> &re_alpha, vector<CCTK_REAL> &im_alpha,
+                                   vector<CCTK_REAL> &re_dr_alpha, vector<CCTK_REAL> &im_dr_alpha,
+                                   vector<CCTK_REAL> &re_dt_alpha, vector<CCTK_REAL> &im_dt_alpha,
+                                   float radius, int mode_count);
+
 void CCE_Export_Integrate(int array_size, int ntheta, int nphi,
                          vector<CCTK_REAL> &array1r, vector<CCTK_REAL> &array1i,
                          vector<CCTK_REAL> &array2r,
