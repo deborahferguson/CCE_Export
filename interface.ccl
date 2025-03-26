@@ -1,3 +1,8 @@
 #interface.ccl for thorn CCE_Export
 implements: CCE_Export
 inherits: ADMBase
+
+CCTK_INT FUNCTION IO_TruncateOutputFiles \
+  (CCTK_POINTER_TO_CONST IN GH)
+
+REQUIRES FUNCTION IO_TruncateOutputFiles
