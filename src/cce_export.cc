@@ -5,32 +5,33 @@
 #include <sys/stat.h>
 #include <iomanip>
 #include <string.h>
+#include <map>
 
 #ifdef HAVE_CAPABILITY_HDF5
-// We currently support the HDF5 1.6 API (and when using 1.8 the                                                                                                                                                                                                                                                                                                                           
-// compatibility mode introduced by H5_USE_16_API).  Several machines                                                                                                                                                                                                                                                                                                                      
-// in SimFactory use HDF5 1.6, so we cannot drop support for it.  It                                                                                                                                                                                                                                                                                                                       
-// seems it is hard to support both the 1.6 and 1.8 API                                                                                                                                                                                                                                                                                                                                    
-// simultaneously; for example H5Fopen takes a different number of                                                                                                                                                                                                                                                                                                                         
+// We currently support the HDF5 1.6 API (and when using 1.8 the
+// compatibility mode introduced by H5_USE_16_API).  Several machines
+// in SimFactory use HDF5 1.6, so we cannot drop support for it.  It
+// seems it is hard to support both the 1.6 and 1.8 API
+// simultaneously; for example H5Fopen takes a different number of
 // arguments in the two versions.                                                                                                                                                                                                                                                                                                                                                          
 #define H5_USE_16_API
 #include <hdf5.h>
 #endif
 
 
-
 #define HDF5_ERROR(fn_call)						\
   do {                                                                  \
-    hid_t _error_code = fn_call;                                        \
-    									\
-    									\
-    if (_error_code < 0)                                                \
-    {									\
+  hid_t _error_code = fn_call;						\
+  									\
+  									\
+  if (_error_code < 0)							\
+    {                                                                   \
       CCTK_VWarn (0, __LINE__, __FILE__, CCTK_THORNSTRING,              \
 		  "HDF5 call '%s' returned error code %d",              \
 		  #fn_call, (int)_error_code);                          \
     }                                                                   \
   } while (0)
+
 
 using namespace std;
 
@@ -335,12 +336,12 @@ static bool file_exists(const string &name)
 
 static bool dataset_exists(hid_t file, const string &dataset_name)
 {
-  // To test whether a dataset exists, the recommended way in API 1.6                                                                                                                                 
-  // is to use H5Gget_objinfo, but this prints an error to stderr if                                                                                                                                  
-  // the dataset does not exist.  We explicitly avoid this by wrapping                                                                                                                                
-  // the call in H5E_BEGIN_TRY/H5E_END_TRY statements.  In 1.8,                                                                                                                                       
-  // H5Gget_objinfo is deprecated, and H5Lexists does the job.  See                                                                                                                                   
-  // http://www.mail-archive.com/hdf-forum@hdfgroup.org/msg00125.html                                                                                                                                 
+  // To test whether a dataset exists, the recommended way in API 1.6
+  // is to use H5Gget_objinfo, but this prints an error to stderr if
+  // the dataset does not exist.  We explicitly avoid this by wrapping
+  // the call in H5E_BEGIN_TRY/H5E_END_TRY statements.  In 1.8,
+  // H5Gget_objinfo is deprecated, and H5Lexists does the job.  See
+  // http://www.mail-archive.com/hdf-forum@hdfgroup.org/msg00125.html
 
   #if 1
   bool exists;
@@ -354,6 +355,7 @@ static bool dataset_exists(hid_t file, const string &dataset_name)
   return H5Lexists(file, dataset_name.c_str(), H5P_DEFAULT);
   #endif
 }
+
 	      
 void Output_Decomposed_Metric_Data(CCTK_ARGUMENTS, vector<vector<vector<CCTK_REAL>>> &re_g, vector<vector<vector<CCTK_REAL>>> &im_g, 
 				   vector<vector<vector<CCTK_REAL>>> &re_dr_g, vector<vector<vector<CCTK_REAL>>> &im_dr_g, 
@@ -375,7 +377,8 @@ void Output_Decomposed_Metric_Data(CCTK_ARGUMENTS, vector<vector<vector<CCTK_REA
                "Multipole output directory %s could not be created",
                my_out_dir);
 
-  static bool checked; // Has the given file been checked
+  static map<string,bool> checked; 
+  // static bool checked; // Has the given file been checked
                                    // for truncation? bool
                                    // defaults to false  
 
@@ -388,105 +391,102 @@ void Output_Decomposed_Metric_Data(CCTK_ARGUMENTS, vector<vector<vector<CCTK_REA
 
   hid_t file;
 
-  if (!file_exists(output_name) || (!checked && IO_TruncateOutputFiles(cctkGH)))
+  if (!file_exists(output_name) || (!checked[output_name] && IO_TruncateOutputFiles(cctkGH)))
     {
+      printf("File does not exist\n");
       file = H5Fcreate(output_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     }
   else
     {
+      printf("File exists\n");
       file = H5Fopen(output_name.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     }
 
-  checked = true;
+  checked[output_name] = true;
 
-  ostringstream datasetname;
-  datasetname << "l" << 0 << "_m" << 0 << "_r" << setiosflags(ios::fixed) << setprecision(2) << 0;
+  // store metric data
+  for(int i = 0; i<3; i++){
+    for(int j=0; j<3; j++){
+      string datasetname;
+      if(i==0 && j==0){datasetname = "gxx.dat";}
+      if(i==0 && j==1){datasetname = "gxy.dat";}
+      if(i==0 && j==2){datasetname = "gxz.dat";}
+      if(i==1 && j==0){datasetname = "gyx.dat";}
+      if(i==1 && j==1){datasetname = "gyy.dat";}
+      if(i==1 && j==2){datasetname = "gyz.dat";}
+      if(i==2 && j==0){datasetname = "gzx.dat";}
+      if(i==2 && j==1){datasetname = "gzy.dat";}
+      if(i==2 && j==2){datasetname = "gzz.dat";}
 
-  hid_t dataset = -1;
-
-  if (dataset_exists(file, datasetname.str()))
-    {
-      dataset = H5Dopen(file, datasetname.str().c_str());
-    }
-  else
-    {
-      hsize_t dims[2] = {0,3};
-      hsize_t maxdims[2] = {H5S_UNLIMITED, 3};
-      hid_t dataspace = H5Screate_simple(2, dims, maxdims);
-
-      hid_t cparms = -1;
-      hsize_t chunk_dims[2] = {hsize_t(hdf5_chunk_size),3};
-      cparms = H5Pcreate (H5P_DATASET_CREATE);
-      HDF5_ERROR(H5Pset_chunk(cparms, 2, chunk_dims));
-
-      dataset = H5Dcreate(file, datasetname.str().c_str(), H5T_NATIVE_DOUBLE, dataspace, cparms);
-      H5Pclose(cparms);
-    }
-
-
-  // string datasetname = "gxx.dat";
-
-  // hid_t dataset = -1;
-  // printf(datasetname.c_str());
-  // printf("\n");
-
-  // if (dataset_exists(file, datasetname))
-  // {
-  //   dataset = H5Dopen(file, datasetname.c_str());
-  // }
-  // else
-  // {
-  //   hsize_t dims[2] = {0,3};
-  //   hsize_t maxdims[2] = {H5S_UNLIMITED, 3};
-  //   hid_t dataspace = H5Screate_simple(2, dims, maxdims);
-    
-  //   hid_t cparms = -1;
-  //   hsize_t chunk_dims[2] = {hsize_t(hdf5_chunk_size), 3};
-  //   cparms = H5Pcreate(H5P_DATASET_CREATE);
-  //   printf("Property list handle: %lld\n", (long long)cparms);
-  //   HDF5_ERROR(H5Pset_chunk(cparms, 2, chunk_dims));
-    
-  //   dataset = H5Dcreate(file, datasetname.c_str(), H5T_NATIVE_DOUBLE, dataspace, cparms);
-  //   H5Pclose(cparms);
-  // }
+      hid_t dataset = -1;
+      printf(datasetname.c_str());
+      printf("\n");
+      
+      if (dataset_exists(file, datasetname))
+      {
+	dataset = H5Dopen(file, datasetname.c_str());
+      }
+      else
+      {
+	hsize_t dims[2] = {0, (hsize_t)(2*mode_count + 1)};
+	hsize_t maxdims[2] = {H5S_UNLIMITED, (hsize_t)(2*mode_count + 1)};
+	hid_t dataspace = H5Screate_simple(2, dims, maxdims);
+	
+	hid_t cparms = -1;
+	hsize_t chunk_dims[2] = {hsize_t(hdf5_chunk_size), (hsize_t)(2*mode_count + 1)};
+	cparms = H5Pcreate(H5P_DATASET_CREATE);
+	printf("Property list handle: %lld\n", (long long)cparms);
+	HDF5_ERROR(H5Pset_chunk(cparms, 2, chunk_dims));
+	
+	dataset = H5Dcreate(file, datasetname.c_str(), H5T_NATIVE_DOUBLE, dataspace, cparms);
+	H5Pclose(cparms);
+      }
   
-  hid_t filespace = H5Dget_space (dataset);
-  hsize_t filedims[2];
-  hsize_t maxdims[2];
-  HDF5_ERROR(H5Sget_simple_extent_dims(filespace, filedims, maxdims));
-
-  filedims[0] += 1;
-  hsize_t size[2] = {filedims[0], filedims[1]};
-  HDF5_ERROR(H5Dextend (dataset, size));
-  HDF5_ERROR(H5Sclose(filespace));
-
-  /* Select a hyperslab  */
-  hsize_t offset[2] = {filedims[0]-1, 0};
-  hsize_t dims2[2] = {1, 3};
-  filespace = H5Dget_space (dataset);
-  HDF5_ERROR(H5Sselect_hyperslab (filespace, H5S_SELECT_SET, offset, NULL,
-				  dims2, NULL));
-
-
-  // CCTK_REAL data[] = {cctk_time, modes(v, i, l, m, 0), modes(v, i, l, m, 1)};
-  CCTK_REAL data[] = {cctk_time, re_g[0][0][0], im_g[0][0][0]};
-  // data[0] = cctk_time;
-  // for(int mode_index=0; mode_index<mode_count; mode_index++)
-  // {
-  //   data[2*mode_index+1] = re_g[0][0][mode_index];
-  //   data[2*mode_index+2] = im_g[0][0][mode_index];
-  // }
-  
-  hid_t memdataspace = H5Screate_simple(2, dims2, NULL);
-
-  /* Write the data to the hyperslab  */
-  HDF5_ERROR(H5Dwrite (dataset, H5T_NATIVE_DOUBLE, memdataspace, filespace,
-		       H5P_DEFAULT, data));
-
-  HDF5_ERROR(H5Dclose(dataset));
-  HDF5_ERROR(H5Sclose(filespace));
-  HDF5_ERROR(H5Sclose(memdataspace));
-
+      printf("About to try to write to dataset\n");
+      
+      hid_t filespace = H5Dget_space (dataset);
+      
+      printf("%ld\n", (long)filespace);  
+      
+      hsize_t filedims[2];
+      hsize_t maxdims[2];
+      HDF5_ERROR(H5Sget_simple_extent_dims(filespace, filedims, maxdims));
+      
+      filedims[0] += 1;
+      hsize_t size[2] = {filedims[0], filedims[1]};
+      HDF5_ERROR(H5Dextend (dataset, size));
+      HDF5_ERROR(H5Sclose(filespace));
+      
+      /* Select a hyperslab  */
+      hsize_t offset[2] = {filedims[0]-1, 0};
+      // hsize_t dims2[2] = {1, 3};
+      hsize_t dims2[2] = {1, (hsize_t)(2*mode_count + 1)};
+      filespace = H5Dget_space (dataset);
+      HDF5_ERROR(H5Sselect_hyperslab (filespace, H5S_SELECT_SET, offset, NULL,
+				      dims2, NULL));
+      
+      
+      // CCTK_REAL data[] = {cctk_time, modes(v, i, l, m, 0), modes(v, i, l, m, 1)};
+      // CCTK_REAL data[] = {cctk_time, re_g[0][0][0], im_g[0][0][0]};
+      CCTK_REAL data[2*mode_count + 1];
+      data[0] = cctk_time;
+      for(int mode_index=0; mode_index<mode_count; mode_index++)
+      {
+	data[2*mode_index+1] = re_g[i][j][mode_index];
+	data[2*mode_index+2] = im_g[i][j][mode_index];
+      }
+    
+      hid_t memdataspace = H5Screate_simple(2, dims2, NULL);
+      
+      /* Write the data to the hyperslab  */
+      HDF5_ERROR(H5Dwrite (dataset, H5T_NATIVE_DOUBLE, memdataspace, filespace,
+			   H5P_DEFAULT, data));
+      
+      HDF5_ERROR(H5Dclose(dataset));
+      HDF5_ERROR(H5Sclose(filespace));
+      HDF5_ERROR(H5Sclose(memdataspace));
+    }
+  }
 }
 
 #else
@@ -822,9 +822,12 @@ void CCE_Export(CCTK_ARGUMENTS)
     printf("Decomposed lapse data\n");
 
     // Store output in h5 file
-    Output_Decomposed_Metric_Data(CCTK_PASS_CTOC, re_g, im_g, re_dr_g, im_dr_g, re_dt_g, im_dt_g, 
-				  re_beta, im_beta, re_dr_beta, im_dr_beta, re_dt_beta, im_dt_beta, 
-				  re_alpha, im_alpha, re_dr_alpha, im_dr_alpha, re_dt_alpha, im_dt_alpha, radius[r], mode_count);
+    if (CCTK_MyProc(cctkGH) == 0)
+    {
+      Output_Decomposed_Metric_Data(CCTK_PASS_CTOC, re_g, im_g, re_dr_g, im_dr_g, re_dt_g, im_dt_g, 
+				    re_beta, im_beta, re_dr_beta, im_dr_beta, re_dt_beta, im_dt_beta, 
+				    re_alpha, im_alpha, re_dr_alpha, im_dr_alpha, re_dt_alpha, im_dt_alpha, radius[r], mode_count);
+    }
   }
 
 }
