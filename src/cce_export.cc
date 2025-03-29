@@ -433,6 +433,13 @@ void CCE_Export(CCTK_ARGUMENTS)
     //            + g_xi dj beta^x + g_yi dj beta^y + g_zi dj beta^z
     //            + g_xj di beta^x + g_yj di beta^y + g_zj di beta^z
     
+    // define redundant metric components
+    for(int array_index=0; array_index<array_size; array_index++){
+      g.at(1).at(0).at(array_index) = g.at(0).at(1).at(array_index);
+      g.at(2).at(0).at(array_index) = g.at(0).at(2).at(array_index);
+      g.at(2).at(1).at(array_index) = g.at(1).at(2).at(array_index);
+    }
+
     // dt g_xx
     for(int array_index=0; array_index<array_size; array_index++){
       dt_g.at(0).at(0).at(array_index) = -2*alpha.at(array_index)*k.at(0).at(0).at(array_index) + \
