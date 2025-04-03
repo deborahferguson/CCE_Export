@@ -1,5 +1,37 @@
 #include "cce_export.hh"
 #include <vector>
+//#define H5_USE_16_API
+//#include <hdf5.h>
+#include <sys/stat.h>
+#include <iomanip>
+#include <string.h>
+#include <map>
+
+#ifdef HAVE_CAPABILITY_HDF5
+// We currently support the HDF5 1.6 API (and when using 1.8 the
+// compatibility mode introduced by H5_USE_16_API).  Several machines
+// in SimFactory use HDF5 1.6, so we cannot drop support for it.  It
+// seems it is hard to support both the 1.6 and 1.8 API
+// simultaneously; for example H5Fopen takes a different number of
+// arguments in the two versions.                                                                                                                                                                                                                                                                                                                                                          
+#define H5_USE_16_API
+#include <hdf5.h>
+#endif
+
+
+#define HDF5_ERROR(fn_call)						\
+  do {                                                                  \
+  hid_t _error_code = fn_call;						\
+  									\
+  									\
+  if (_error_code < 0)							\
+    {                                                                   \
+      CCTK_VWarn (0, __LINE__, __FILE__, CCTK_THORNSTRING,              \
+		  "HDF5 call '%s' returned error code %d",              \
+		  #fn_call, (int)_error_code);                          \
+    }                                                                   \
+  } while (0)
+
 
 using namespace std;
 
@@ -19,10 +51,10 @@ CCTK_REAL CCE_Export_Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_
   int px = nx / 2;
   int py = ny / 2;
 
-  // Corners                                                                                                                                                                                          
+  // Corners
   integrand_sum += f[idx(0,0)] + f[idx(nx,0)] + f[idx(0,ny)] + f[idx(nx,ny)];
 
-  // Edges                                                                                                                                                                                            
+  // Edges
   for (iy = 1; iy <= py; iy++)
     integrand_sum += 4 * f[idx(0,2*iy-1)] + 4 * f[idx(nx,2*iy-1)];
 
@@ -35,7 +67,7 @@ CCTK_REAL CCE_Export_Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_
   for (ix = 1; ix <= px-1; ix++)
     integrand_sum += 2 * f[idx(2*ix,0)] + 2 * f[idx(2*ix,ny)];
 
-  // Interior                                                                                                                                                                                         
+  // Interior
   for (iy = 1; iy <= py; iy++)
     for (ix = 1; ix <= px; ix++)
       integrand_sum += 16 * f[idx(2*ix-1,2*iy-1)];
@@ -235,10 +267,6 @@ void Decompose_Spherical_Harmonics(vector<CCTK_REAL> &th, vector<CCTK_REAL> &phi
   }
 }
 
-// void index_to_l_m(int index, int &l, int &m){
-  
-// }
-
 int l_m_to_index(int l, int m)
 {
   return l*l + l + m;
@@ -298,6 +326,312 @@ void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, vector<vector<CC
   }
 }
 
+#ifdef HAVE_CAPABILITY_HDF5
+
+static bool file_exists(const string &name)
+{
+  struct stat sts;
+  return !(stat(name.c_str(), &sts) == -1 && errno == ENOENT);
+}
+
+static bool dataset_exists(hid_t file, const string &dataset_name)
+{
+  // To test whether a dataset exists, the recommended way in API 1.6
+  // is to use H5Gget_objinfo, but this prints an error to stderr if
+  // the dataset does not exist.  We explicitly avoid this by wrapping
+  // the call in H5E_BEGIN_TRY/H5E_END_TRY statements.  In 1.8,
+  // H5Gget_objinfo is deprecated, and H5Lexists does the job.  See
+  // http://www.mail-archive.com/hdf-forum@hdfgroup.org/msg00125.html
+
+  #if 1
+  bool exists;
+  H5E_BEGIN_TRY
+    {
+      exists = H5Gget_objinfo(file, dataset_name.c_str(), 1, NULL) >= 0;
+    }
+  H5E_END_TRY;
+  return exists;
+  #else
+  return H5Lexists(file, dataset_name.c_str(), H5P_DEFAULT);
+  #endif
+}
+
+void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname, CCTK_REAL *data, int lmax)
+{
+  DECLARE_CCTK_ARGUMENTS;
+  DECLARE_CCTK_PARAMETERS;
+
+  int mode_count = l_m_to_index(lmax, lmax)+1;
+
+  hid_t dataset = -1;
+  printf(datasetname.c_str());
+  printf("\n");
+  
+  if (dataset_exists(file, datasetname))
+    {
+    dataset = H5Dopen(file, datasetname.c_str());
+  }
+  else
+  {
+    hsize_t dims[2] = {0, (hsize_t)(2*mode_count + 1)};
+    hsize_t maxdims[2] = {H5S_UNLIMITED, (hsize_t)(2*mode_count + 1)};
+    hid_t dataspace = H5Screate_simple(2, dims, maxdims);
+    
+    hid_t cparms = -1;
+    hsize_t chunk_dims[2] = {hsize_t(hdf5_chunk_size), (hsize_t)(2*mode_count + 1)};
+    cparms = H5Pcreate(H5P_DATASET_CREATE);
+    printf("Property list handle: %lld\n", (long long)cparms);
+    HDF5_ERROR(H5Pset_chunk(cparms, 2, chunk_dims));
+    
+    dataset = H5Dcreate(file, datasetname.c_str(), H5T_NATIVE_DOUBLE, dataspace, cparms);
+    H5Pclose(cparms);
+
+    // Create the legend 
+
+    // Create variable-length string datatype
+    hid_t str_type = H5Tcopy(H5T_C_S1);
+    printf("string type: %lld\n", (long long)str_type);
+    H5Tset_size(str_type, H5T_VARIABLE);
+
+    // Create dataspace for array of strings
+    hsize_t legend_dims[] = {(hsize_t)(2*mode_count + 1)}; 
+    hid_t space = H5Screate_simple(1, legend_dims, NULL);
+    printf("space: %lld\n", (long long)space);
+
+    // Create attribute
+    hid_t attr = H5Acreate(dataset, "Legend", str_type, space, H5P_DEFAULT);
+    printf("attr: %lld\n", (long long)attr);
+
+    // Write array of strings
+    char* legend[2*mode_count + 1];
+    legend[0] = "time";
+    for(int l=0; l<lmax+1; l++){
+      for(int m=-l; m<l+1; m++){
+    	int mode_index = l_m_to_index(l, m);
+    	ostringstream re_label;
+    	re_label << "Re(" << l << "," << m <<")";
+	printf("%s\n", re_label.str().c_str());
+    	legend[2*mode_index+1] = strdup(re_label.str().c_str());
+    	ostringstream im_label;
+    	im_label << "Im(" << l << "," << m <<")";
+	printf("%s\n", im_label.str().c_str());
+    	legend[2*mode_index+2] = strdup(im_label.str().c_str());
+      }
+    }
+    printf("Made the legend array\n");
+    // for(int i = 0; i < 2*mode_count+1; i++) {
+    //   printf("%s\n", legend[i]);
+    // }
+
+    H5Awrite(attr, str_type, legend);
+  }
+  
+  printf("About to try to write to dataset\n");
+  
+  hid_t filespace = H5Dget_space (dataset);
+  
+  printf("%ld\n", (long)filespace);  
+  
+  hsize_t filedims[2];
+  hsize_t maxdims[2];
+  HDF5_ERROR(H5Sget_simple_extent_dims(filespace, filedims, maxdims));
+  
+  filedims[0] += 1;
+  hsize_t size[2] = {filedims[0], filedims[1]};
+  HDF5_ERROR(H5Dextend (dataset, size));
+  HDF5_ERROR(H5Sclose(filespace));
+  
+  /* Select a hyperslab  */
+  hsize_t offset[2] = {filedims[0]-1, 0};
+  // hsize_t dims2[2] = {1, 3};
+  hsize_t dims2[2] = {1, (hsize_t)(2*mode_count + 1)};
+  filespace = H5Dget_space (dataset);
+  HDF5_ERROR(H5Sselect_hyperslab (filespace, H5S_SELECT_SET, offset, NULL,
+				  dims2, NULL));
+  
+  hid_t memdataspace = H5Screate_simple(2, dims2, NULL);
+  
+  /* Write the data to the hyperslab  */
+  HDF5_ERROR(H5Dwrite (dataset, H5T_NATIVE_DOUBLE, memdataspace, filespace,
+		       H5P_DEFAULT, data));
+  
+  HDF5_ERROR(H5Dclose(dataset));
+  HDF5_ERROR(H5Sclose(filespace));
+  HDF5_ERROR(H5Sclose(memdataspace));
+}
+	      
+void Output_Decomposed_Metric_Data(CCTK_ARGUMENTS, vector<vector<vector<CCTK_REAL>>> &re_g, vector<vector<vector<CCTK_REAL>>> &im_g, 
+				   vector<vector<vector<CCTK_REAL>>> &re_dr_g, vector<vector<vector<CCTK_REAL>>> &im_dr_g, 
+				   vector<vector<vector<CCTK_REAL>>> &re_dt_g, vector<vector<vector<CCTK_REAL>>> &im_dt_g, 
+				   vector<vector<CCTK_REAL>> &re_beta, vector<vector<CCTK_REAL>> &im_beta, 
+				   vector<vector<CCTK_REAL>> &re_dr_beta, vector<vector<CCTK_REAL>> &im_dr_beta, 
+				   vector<vector<CCTK_REAL>> &re_dt_beta, vector<vector<CCTK_REAL>> &im_dt_beta, 
+				   vector<CCTK_REAL> &re_alpha, vector<CCTK_REAL> &im_alpha, 
+				   vector<CCTK_REAL> &re_dr_alpha, vector<CCTK_REAL> &im_dr_alpha, 
+				   vector<CCTK_REAL> &re_dt_alpha, vector<CCTK_REAL> &im_dt_alpha, 
+				   float rad, int lmax)
+{
+  DECLARE_CCTK_ARGUMENTS;
+  DECLARE_CCTK_PARAMETERS;
+
+  int mode_count = l_m_to_index(lmax, lmax) + 1;
+
+  const char *my_out_dir = strcmp(out_dir, "") ? out_dir : io_out_dir;
+  if (CCTK_CreateDirectory(0755, my_out_dir) < 0)
+    CCTK_VWarn(CCTK_WARN_ABORT, __LINE__, __FILE__, CCTK_THORNSTRING,
+               "Multipole output directory %s could not be created",
+               my_out_dir);
+
+  static map<string,bool> checked; 
+  // static bool checked; // Has the given file been checked
+                                   // for truncation? bool
+                                   // defaults to false  
+
+  ostringstream basename;
+  basename << "CCE_Export_R" << setiosflags(ios::fixed) << setprecision(2) << rad << ".h5";
+  string output_name = my_out_dir + string("/") + basename.str();
+
+  printf(output_name.c_str());
+  printf("\n");
+
+  hid_t file;
+
+  if (!file_exists(output_name) || (!checked[output_name] && IO_TruncateOutputFiles(cctkGH)))
+    {
+      printf("File does not exist\n");
+      file = H5Fcreate(output_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    }
+  else
+    {
+      printf("File exists\n");
+      file = H5Fopen(output_name.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+    }
+
+  checked[output_name] = true;
+
+  // store metric data
+  for(int i = 0; i<3; i++){
+    for(int j=i; j<3; j++){
+      string components;
+      if(i==0 && j==0){components = "xx";}
+      if(i==0 && j==1){components = "xy";}
+      if(i==0 && j==2){components = "xz";}
+      if(i==1 && j==1){components = "yy";}
+      if(i==1 && j==2){components = "yz";}
+      if(i==2 && j==2){components = "zz";}
+
+      string datasetname = "g" + components + ".dat";
+      string dt_datasetname = "Dtg" + components + ".dat";
+      string dr_datasetname = "Drg" + components + ".dat";
+
+      CCTK_REAL data[2*mode_count + 1];
+      CCTK_REAL dt_data[2*mode_count + 1];
+      CCTK_REAL dr_data[2*mode_count + 1];
+      data[0] = cctk_time;
+      dt_data[0] = cctk_time;
+      dr_data[0] = cctk_time;
+      for(int l=0; l<=lmax; l++){
+      	for(int m=-l; m<l+1; m++){
+      	  int mode_index = l_m_to_index(l, m);
+      	  // printf("%f, %f, %f\n", l, m, mode_index);
+	  data[2*mode_index+1] = re_g[i][j][mode_index];
+	  data[2*mode_index+2] = im_g[i][j][mode_index];
+	  dt_data[2*mode_index+1] = re_dt_g[i][j][mode_index];
+	  dt_data[2*mode_index+2] = im_dt_g[i][j][mode_index];
+	  dr_data[2*mode_index+1] = re_dr_g[i][j][mode_index];
+	  dr_data[2*mode_index+2] = im_dr_g[i][j][mode_index];
+	}
+      }
+
+      Create_Dataset(CCTK_PASS_CTOC, file, datasetname, data, lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, dt_datasetname, dt_data, lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, dr_datasetname, dr_data, lmax);
+
+    }
+  }
+
+  // store shift data
+  for(int i=0; i<3; i++){
+    string component;
+    if(i==0){component = "x";}
+    if(i==1){component = "y";}
+    if(i==2){component = "z";}
+    
+    string datasetname = "Shift" + component + ".dat";
+    string dt_datasetname = "DtShift" + component + ".dat";
+    string dr_datasetname = "DrShift" + component + ".dat";
+
+    CCTK_REAL data[2*mode_count + 1];
+    CCTK_REAL dt_data[2*mode_count + 1];
+    CCTK_REAL dr_data[2*mode_count + 1];
+    data[0] = cctk_time;
+    dt_data[0] = cctk_time;
+    dr_data[0] = cctk_time;
+    //for(int mode_index = 0; mode_index<mode_count; mode_index++){
+    for(int l=0; l<=lmax; l++){
+      for(int m=-l; m<l+1; m++){
+    	int mode_index = l_m_to_index(l, m);
+	data[2*mode_index+1] = re_beta[i][mode_index];
+	data[2*mode_index+2] = im_beta[i][mode_index];
+	dt_data[2*mode_index+1] = re_dt_beta[i][mode_index];
+	dt_data[2*mode_index+2] = im_dt_beta[i][mode_index];
+	dr_data[2*mode_index+1] = re_dr_beta[i][mode_index];
+	dr_data[2*mode_index+2] = im_dr_beta[i][mode_index];
+      }
+    } 
+	  
+    Create_Dataset(CCTK_PASS_CTOC, file, datasetname, data, lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, dt_datasetname, dt_data, lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, dr_datasetname, dr_data, lmax);
+  }
+
+  // store lapse data
+  string datasetname = "Lapse.dat";
+  string dt_datasetname = "DtLapse.dat";
+  string dr_datasetname = "DrLapse.dat";
+
+  CCTK_REAL data[2*mode_count + 1];
+  CCTK_REAL dt_data[2*mode_count + 1];
+  CCTK_REAL dr_data[2*mode_count + 1];
+  data[0] = cctk_time;
+  dt_data[0] = cctk_time;
+  dr_data[0] = cctk_time;
+  for(int l=0; l<=lmax; l++){
+    for(int m=-l; m<l+1; m++){
+      int mode_index = l_m_to_index(l, m);
+      data[2*mode_index+1] = re_alpha[mode_index];
+      data[2*mode_index+2] = im_alpha[mode_index];
+      dt_data[2*mode_index+1] = re_dt_alpha[mode_index];
+      dt_data[2*mode_index+2] = im_dt_alpha[mode_index];
+      dr_data[2*mode_index+1] = re_dr_alpha[mode_index];
+      dr_data[2*mode_index+2] = im_dr_alpha[mode_index];
+    }
+  }
+
+  Create_Dataset(CCTK_PASS_CTOC, file, datasetname, data, lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, dt_datasetname, dt_data, lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, dr_datasetname, dr_data, lmax);  
+
+}
+
+#else
+
+void  Output_Decomposed_Metric_Data(CCTK_ARGUMENTS, vector<vector<vector<CCTK_REAL>>> &re_g, vector<vector<vector<CCTK_REAL>>> &im_g,
+				    vector<vector<vector<CCTK_REAL>>> &re_dr_g, vector<vector<vector<CCTK_REAL>>> &im_dr_g,
+				    vector<vector<vector<CCTK_REAL>>> &re_dt_g, vector<vector<vector<CCTK_REAL>>> &im_dt_g,
+				    vector<vector<CCTK_REAL>> &re_beta, vector<vector<CCTK_REAL>> &im_beta,
+				    vector<vector<CCTK_REAL>> &re_dr_beta, vector<vector<CCTK_REAL>> &im_dr_beta,
+				    vector<vector<CCTK_REAL>> &re_dt_beta, vector<vector<CCTK_REAL>> &im_dt_beta,
+				    vector<CCTK_REAL> &re_alpha, vector<CCTK_REAL> &im_alpha,
+				    vector<CCTK_REAL> &re_dr_alpha, vector<CCTK_REAL> &im_dr_alpha,
+				    vector<CCTK_REAL> &re_dt_alpha, vector<CCTK_REAL> &im_dt_alpha,
+				    float rad, int lmax)
+{
+  CCTK_WARN(0,"HDF5 output has been requested but Cactus has been compiled without HDF5 support");
+}
+
+#endif
+
 void CCE_Export(CCTK_ARGUMENTS)
 {
   DECLARE_CCTK_ARGUMENTS;
@@ -307,10 +641,12 @@ void CCE_Export(CCTK_ARGUMENTS)
 
   static string index_to_component[] = {"x", "y", "z"};
 
-  const int ntheta = 50; 
-  const int nphi = 100;
+  //const int ntheta = 50; 
+  //const int nphi = 100;
+  const int ntheta = 120; 
+  const int nphi = 240;
   const int array_size = (ntheta+1)*(nphi+1);
-  // const int array_size=ntheta*nphi;
+  //const int array_size=ntheta*nphi;
 
   // extrinsic curvature, 3d vector (3, 3, array_size)
   vector<vector<vector<CCTK_REAL>>> k(3, vector<vector<CCTK_REAL>>(3, vector<CCTK_REAL>(array_size)));
@@ -358,11 +694,11 @@ void CCE_Export(CCTK_ARGUMENTS)
   // Based on the number of theta and phi points desired (ntheta, nphi)
   const CCTK_REAL PI = acos(-1.0);
 
-  for (int theta_index = 0; theta_index < ntheta; theta_index++)
+  for (int theta_index = 0; theta_index <= ntheta; theta_index++)
   {
-    for (int phi_index = 0; phi_index < nphi; phi_index++)
+    for (int phi_index = 0; phi_index <= nphi; phi_index++)
     {
-      const int array_index = theta_index + ntheta * phi_index;
+      const int array_index = theta_index + (ntheta+1) * phi_index;
 	
       th.at(array_index) = theta_index * PI / (ntheta);
       ph.at(array_index) = phi_index * 2 * PI / nphi;
@@ -380,11 +716,11 @@ void CCE_Export(CCTK_ARGUMENTS)
     printf("CCE_Export: in radius loop\n");
 
     // compute the values of x, y, z and the desired points on the sphere of radius radius[r]
-    for (int theta_index = 0; theta_index < ntheta; theta_index++)
+    for (int theta_index = 0; theta_index <= ntheta; theta_index++)
     {
-      for (int phi_index = 0; phi_index < nphi; phi_index++)
+      for (int phi_index = 0; phi_index <= nphi; phi_index++)
       {
-	const int array_index = theta_index + ntheta * phi_index;
+	const int array_index = theta_index + (ntheta+1) * phi_index;
 	
 	xs.at(array_index) = radius[r] * xhat.at(array_index);
 	ys.at(array_index) = radius[r] * yhat.at(array_index);
@@ -508,14 +844,20 @@ void CCE_Export(CCTK_ARGUMENTS)
 	g.at(1).at(2).at(array_index)*dz_beta.at(1).at(array_index) +	\
 	g.at(2).at(2).at(array_index)*dz_beta.at(2).at(array_index);
 
-      dt_g.at(1).at(0).at(array_index) = dt_g.at(0).at(1).at(array_index);
+      // dt_g.at(1).at(0).at(array_index) = dt_g.at(0).at(1).at(array_index);
 
-      dt_g.at(2).at(0).at(array_index) = dt_g.at(0).at(2).at(array_index);
+      // dt_g.at(2).at(0).at(array_index) = dt_g.at(0).at(2).at(array_index);
 
-      dt_g.at(2).at(1).at(array_index) = dt_g.at(1).at(2).at(array_index);
+      // dt_g.at(2).at(1).at(array_index) = dt_g.at(1).at(2).at(array_index);
     
     }
     
+    // // print the values of gxx on the sphere
+    // printf("CCE_Export: theta\tphi\tgxx\n");
+    // for(int array_index=0; array_index<array_size; array_index++){
+    //   printf("%f\t%f\t%f\n", th[array_index], ph[array_index], g.at(0).at(0).at(array_index));
+    // }
+
     // Integrate to obtain spherical harmonic decomposition
     const int lmax = 8;
     const int mode_count = l_m_to_index(lmax, lmax) + 1;
@@ -581,6 +923,14 @@ void CCE_Export(CCTK_ARGUMENTS)
       }
     }
 
+    // printf("CCE_Export: l\tm\tre_gxx_lm\tim_gxx_lm\n");
+    // for(int l=0; l<lmax+1; l++){
+    //   for(int m=-l; m<l+1; m++){
+    // 	int mode_index = l_m_to_index(l, m);
+    // 	printf("%d\t%d\t%f\t%f\n", l, m, re_g.at(0).at(0).at(mode_index), im_g.at(0).at(0).at(mode_index));
+    //   }
+    // }
+
     printf("Decomposed metric data\n");
 
     // Decompose beta, dr_beta, dt_beta
@@ -613,6 +963,12 @@ void CCE_Export(CCTK_ARGUMENTS)
     printf("Decomposed lapse data\n");
 
     // Store output in h5 file
+    if (CCTK_MyProc(cctkGH) == 0)
+    {
+      Output_Decomposed_Metric_Data(CCTK_PASS_CTOC, re_g, im_g, re_dr_g, im_dr_g, re_dt_g, im_dt_g, 
+				    re_beta, im_beta, re_dr_beta, im_dr_beta, re_dt_beta, im_dt_beta, 
+				    re_alpha, im_alpha, re_dr_alpha, im_dr_alpha, re_dt_alpha, im_dt_alpha, radius[r], lmax);
+    }
   }
 
 }
