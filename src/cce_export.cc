@@ -303,8 +303,32 @@ static inline double combination(int n, int m)
   return factorial(n) / (factorial(m) * factorial(n-m));
 }
 
+// void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, vector<vector<CCTK_REAL>> &re_ylms, vector<vector<CCTK_REAL>> &im_ylms, int lmax, int array_size)
+// {
+//   const CCTK_REAL PI = acos(-1.0);
+//   for(int l=0; l<lmax+1; l++){
+//     for(int m=-l; m<l+1; m++){
+//       int ylm_index = l_m_to_index(l, m);
+//       for(int array_index=0; array_index<array_size; array_index++){
+// 	double all_coeff = 0, sum = 0;
+// 	all_coeff = pow(-1.0, m);
+// 	all_coeff *= sqrt(factorial(l+m)*factorial(l-m)*(2*l+1) / (4.*PI*factorial(l)*factorial(l)));
+// 	sum = 0.;
+// 	for(int i = imax(m, 0); i <= imin(l + m, l); i++){
+// 	  double sum_coeff = combination(l, i) * combination(l, i-m);
+// 	  sum += sum_coeff * pow(-1.0, l-i) * pow(cos(th[array_index]/2.), 2 * i - m) *
+// 	    pow(sin(th[array_index]/2.), 2*(l-i)+m);
+// 	}
+// 	re_ylms.at(ylm_index).at(array_index) = all_coeff*sum*cos(m*ph[array_index]);
+// 	im_ylms.at(ylm_index).at(array_index) = all_coeff*sum*sin(m*ph[array_index]);
+//       }
+//     }
+//   }
+// }
+
 void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, vector<vector<CCTK_REAL>> &re_ylms, vector<vector<CCTK_REAL>> &im_ylms, int lmax, int array_size)
 {
+  int s = 0;
   const CCTK_REAL PI = acos(-1.0);
   for(int l=0; l<lmax+1; l++){
     for(int m=-l; m<l+1; m++){
@@ -312,12 +336,13 @@ void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, vector<vector<CC
       for(int array_index=0; array_index<array_size; array_index++){
 	double all_coeff = 0, sum = 0;
 	all_coeff = pow(-1.0, m);
-	all_coeff *= sqrt(factorial(l+m)*factorial(l-m)*(2*l+1) / (4.*PI*factorial(l)*factorial(l)));
+	all_coeff *= sqrt(factorial(l+m)*factorial(l-m)*(2*l+1) / (4.*PI*factorial(l+s)*factorial(l-s)));
 	sum = 0.;
-	for(int i = imax(m, 0); i <= imin(l + m, l); i++){
-	  double sum_coeff = combination(l, i) * combination(l, i-m);
-	  sum += sum_coeff * pow(-1.0, l-i) * pow(cos(th[array_index]/2.), 2 * i - m) *
-	    pow(sin(th[array_index]/2.), 2*(l-i)+m);
+	for (int i = imax(m - s, 0); i <= imin(l + m, l - s); i++)
+	{
+	  double sum_coeff = combination(l-s, i) * combination(l+s, i+s-m);
+	  sum += sum_coeff * pow(-1.0, l-i-s) * pow(cos(th[array_index]/2.), 2 * i + s - m) *
+	    pow(sin(th[array_index]/2.), 2*(l-i)+m-s);
 	}
 	re_ylms.at(ylm_index).at(array_index) = all_coeff*sum*cos(m*ph[array_index]);
 	im_ylms.at(ylm_index).at(array_index) = all_coeff*sum*sin(m*ph[array_index]);
@@ -641,10 +666,12 @@ void CCE_Export(CCTK_ARGUMENTS)
 
   static string index_to_component[] = {"x", "y", "z"};
 
-  const int ntheta = 50; 
-  const int nphi = 100;
+  //const int ntheta = 50; 
+  //const int nphi = 100;
+  const int ntheta = 120; 
+  const int nphi = 240;
   const int array_size = (ntheta+1)*(nphi+1);
-  // const int array_size=ntheta*nphi;
+  //const int array_size=ntheta*nphi;
 
   // extrinsic curvature, 3d vector (3, 3, array_size)
   vector<vector<vector<CCTK_REAL>>> k(3, vector<vector<CCTK_REAL>>(3, vector<CCTK_REAL>(array_size)));
@@ -692,11 +719,11 @@ void CCE_Export(CCTK_ARGUMENTS)
   // Based on the number of theta and phi points desired (ntheta, nphi)
   const CCTK_REAL PI = acos(-1.0);
 
-  for (int theta_index = 0; theta_index < ntheta; theta_index++)
+  for (int theta_index = 0; theta_index <= ntheta; theta_index++)
   {
-    for (int phi_index = 0; phi_index < nphi; phi_index++)
+    for (int phi_index = 0; phi_index <= nphi; phi_index++)
     {
-      const int array_index = theta_index + ntheta * phi_index;
+      const int array_index = theta_index + (ntheta+1) * phi_index;
 	
       th.at(array_index) = theta_index * PI / (ntheta);
       ph.at(array_index) = phi_index * 2 * PI / nphi;
@@ -714,11 +741,11 @@ void CCE_Export(CCTK_ARGUMENTS)
     printf("CCE_Export: in radius loop\n");
 
     // compute the values of x, y, z and the desired points on the sphere of radius radius[r]
-    for (int theta_index = 0; theta_index < ntheta; theta_index++)
+    for (int theta_index = 0; theta_index <= ntheta; theta_index++)
     {
-      for (int phi_index = 0; phi_index < nphi; phi_index++)
+      for (int phi_index = 0; phi_index <= nphi; phi_index++)
       {
-	const int array_index = theta_index + ntheta * phi_index;
+	const int array_index = theta_index + (ntheta+1) * phi_index;
 	
 	xs.at(array_index) = radius[r] * xhat.at(array_index);
 	ys.at(array_index) = radius[r] * yhat.at(array_index);
@@ -850,6 +877,12 @@ void CCE_Export(CCTK_ARGUMENTS)
     
     }
     
+    // // print the values of gxx on the sphere
+    // printf("CCE_Export: theta\tphi\tgxx\n");
+    // for(int array_index=0; array_index<array_size; array_index++){
+    //   printf("%f\t%f\t%f\n", th[array_index], ph[array_index], g.at(0).at(0).at(array_index));
+    // }
+
     // Integrate to obtain spherical harmonic decomposition
     const int lmax = 8;
     const int mode_count = l_m_to_index(lmax, lmax) + 1;
@@ -914,6 +947,14 @@ void CCE_Export(CCTK_ARGUMENTS)
 	Decompose_Spherical_Harmonics(th, ph, dt_g.at(i).at(j), re_dt_g.at(i).at(j), im_dt_g.at(i).at(j), re_ylms, im_ylms, array_size, lmax, ntheta, nphi);
       }
     }
+
+    // printf("CCE_Export: l\tm\tre_gxx_lm\tim_gxx_lm\n");
+    // for(int l=0; l<lmax+1; l++){
+    //   for(int m=-l; m<l+1; m++){
+    // 	int mode_index = l_m_to_index(l, m);
+    // 	printf("%d\t%d\t%f\t%f\n", l, m, re_g.at(0).at(0).at(mode_index), im_g.at(0).at(0).at(mode_index));
+    //   }
+    // }
 
     printf("Decomposed metric data\n");
 
