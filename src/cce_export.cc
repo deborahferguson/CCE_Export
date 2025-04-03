@@ -303,32 +303,8 @@ static inline double combination(int n, int m)
   return factorial(n) / (factorial(m) * factorial(n-m));
 }
 
-// void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, vector<vector<CCTK_REAL>> &re_ylms, vector<vector<CCTK_REAL>> &im_ylms, int lmax, int array_size)
-// {
-//   const CCTK_REAL PI = acos(-1.0);
-//   for(int l=0; l<lmax+1; l++){
-//     for(int m=-l; m<l+1; m++){
-//       int ylm_index = l_m_to_index(l, m);
-//       for(int array_index=0; array_index<array_size; array_index++){
-// 	double all_coeff = 0, sum = 0;
-// 	all_coeff = pow(-1.0, m);
-// 	all_coeff *= sqrt(factorial(l+m)*factorial(l-m)*(2*l+1) / (4.*PI*factorial(l)*factorial(l)));
-// 	sum = 0.;
-// 	for(int i = imax(m, 0); i <= imin(l + m, l); i++){
-// 	  double sum_coeff = combination(l, i) * combination(l, i-m);
-// 	  sum += sum_coeff * pow(-1.0, l-i) * pow(cos(th[array_index]/2.), 2 * i - m) *
-// 	    pow(sin(th[array_index]/2.), 2*(l-i)+m);
-// 	}
-// 	re_ylms.at(ylm_index).at(array_index) = all_coeff*sum*cos(m*ph[array_index]);
-// 	im_ylms.at(ylm_index).at(array_index) = all_coeff*sum*sin(m*ph[array_index]);
-//       }
-//     }
-//   }
-// }
-
 void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, vector<vector<CCTK_REAL>> &re_ylms, vector<vector<CCTK_REAL>> &im_ylms, int lmax, int array_size)
 {
-  int s = 0;
   const CCTK_REAL PI = acos(-1.0);
   for(int l=0; l<lmax+1; l++){
     for(int m=-l; m<l+1; m++){
@@ -336,13 +312,12 @@ void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, vector<vector<CC
       for(int array_index=0; array_index<array_size; array_index++){
 	double all_coeff = 0, sum = 0;
 	all_coeff = pow(-1.0, m);
-	all_coeff *= sqrt(factorial(l+m)*factorial(l-m)*(2*l+1) / (4.*PI*factorial(l+s)*factorial(l-s)));
+	all_coeff *= sqrt(factorial(l+m)*factorial(l-m)*(2*l+1) / (4.*PI*factorial(l)*factorial(l)));
 	sum = 0.;
-	for (int i = imax(m - s, 0); i <= imin(l + m, l - s); i++)
-	{
-	  double sum_coeff = combination(l-s, i) * combination(l+s, i+s-m);
-	  sum += sum_coeff * pow(-1.0, l-i-s) * pow(cos(th[array_index]/2.), 2 * i + s - m) *
-	    pow(sin(th[array_index]/2.), 2*(l-i)+m-s);
+	for(int i = imax(m, 0); i <= imin(l + m, l); i++){
+	  double sum_coeff = combination(l, i) * combination(l, i-m);
+	  sum += sum_coeff * pow(-1.0, l-i) * pow(cos(th[array_index]/2.), 2 * i - m) *
+	    pow(sin(th[array_index]/2.), 2*(l-i)+m);
 	}
 	re_ylms.at(ylm_index).at(array_index) = all_coeff*sum*cos(m*ph[array_index]);
 	im_ylms.at(ylm_index).at(array_index) = all_coeff*sum*sin(m*ph[array_index]);
