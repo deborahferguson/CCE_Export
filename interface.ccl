@@ -1,4 +1,5 @@
-#interface.ccl for thorn CCE_Export
+# Interface definition for thorn CCE_Export
+
 implements: CCE_Export
 inherits: ADMBase
 

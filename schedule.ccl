@@ -1,7 +1,8 @@
-#schedule.ccl for thorn CCE_Export
+# Schedule definition for thorn CCE_Export
 
 schedule CCE_Export at CCTK_ANALYSIS
 {
+  READS: ADMBase::metric, ADMBase::curv, ADMBase::lapse, ADMBase::shift, ADMBase::dtlapse, ADMBase::dtshift
   LANG: C
   OPTIONS: GLOBAL
 } "Export metric data on sphere for CCE"

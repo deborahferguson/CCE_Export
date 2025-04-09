@@ -1,5 +1,5 @@
-#include <string>
-#include <vector>
+#ifndef CCE_EXPORT_HH
+#define CCE_EXPORT_HH
 
 #include "cctk.h"
 #include "cctk_Arguments.h"
@@ -7,21 +7,23 @@
 #include "cctk_Parameters.h"
 #include "util_Table.h"
 
-using namespace std;
+#include <string>
+#include <vector>
+
+namespace CCE_Export {
 
 extern "C" void CCE_Export(CCTK_ARGUMENTS);
 
-void CCE_Export_Interpolate_On_Sphere_With_Derivatives(
+void Interpolate_On_Sphere_With_Derivatives(
     CCTK_ARGUMENTS, vector<CCTK_REAL> &xs, vector<CCTK_REAL> &ys,
     vector<CCTK_REAL> &zs, std::string name, vector<CCTK_REAL> &sphere_values,
     vector<CCTK_REAL> &sphere_dx, vector<CCTK_REAL> &sphere_dy,
     vector<CCTK_REAL> &sphere_dz, CCTK_INT array_size);
 
-void CCE_Export_Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
-                                      vector<CCTK_REAL> &ys,
-                                      vector<CCTK_REAL> &zs, std::string name,
-                                      vector<CCTK_REAL> &sphere_values,
-                                      CCTK_INT array_size);
+void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
+                           vector<CCTK_REAL> &ys, vector<CCTK_REAL> &zs,
+                           std::string name, vector<CCTK_REAL> &sphere_values,
+                           CCTK_INT array_size);
 
 void Decompose_Spherical_Harmonics(
     vector<CCTK_REAL> &th, vector<CCTK_REAL> &phi,
@@ -43,8 +45,8 @@ void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph,
                   vector<vector<CCTK_REAL> > &im_ylms, int lmax,
                   int array_size);
 
-CCTK_REAL CCE_Export_Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny,
-                                       CCTK_REAL hx, CCTK_REAL hy);
+CCTK_REAL Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_REAL hx,
+                            CCTK_REAL hy);
 
 void Create_Dataset(string datasetname, CCTK_REAL *data, int mode_count);
 
@@ -64,9 +66,11 @@ void Output_Decomposed_Metric_Data(
     vector<CCTK_REAL> &im_dr_alpha, vector<CCTK_REAL> &re_dt_alpha,
     vector<CCTK_REAL> &im_dt_alpha, float radius, int lmax);
 
-void CCE_Export_Integrate(int array_size, int ntheta, int nphi,
-                          vector<CCTK_REAL> &array1r,
-                          vector<CCTK_REAL> &array1i,
-                          vector<CCTK_REAL> &array2r, vector<CCTK_REAL> &th,
-                          vector<CCTK_REAL> &ph, CCTK_REAL *outre,
-                          CCTK_REAL *outim);
+void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
+               vector<CCTK_REAL> &array1i, vector<CCTK_REAL> &array2r,
+               vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, CCTK_REAL *outre,
+               CCTK_REAL *outim);
+
+} // namespace CCE_Export
+
+#endif // CCE_EXPORT_HH

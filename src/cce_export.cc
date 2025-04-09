@@ -29,16 +29,14 @@
     }                                                                          \
   } while (0)
 
-using namespace std;
+// Copied from Multipole
+static inline int idx(xx, yy){(assert((xx) <= nx), assert((xx) >= 0),
+                               assert((yy) <= ny), assert((yy) >= 0),
+                               ((xx) + (yy) * (nx + 1)))}
 
 // Copied from Multipole
-#define idx(xx, yy)                                                            \
-  (assert((xx) <= nx), assert((xx) >= 0), assert((yy) <= ny),                  \
-   assert((yy) >= 0), ((xx) + (yy) * (nx + 1)))
-
-// Copied from Multipole
-CCTK_REAL CCE_Export_Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny,
-                                       CCTK_REAL hx, CCTK_REAL hy) {
+CCTK_REAL Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_REAL hx,
+                            CCTK_REAL hy) {
   CCTK_REAL integrand_sum = 0;
   int ix = 0, iy = 0;
 
@@ -85,10 +83,10 @@ CCTK_REAL CCE_Export_Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny,
     for (ix = 1; ix <= px - 1; ix++)
       integrand_sum += 4 * f[idx(2 * ix, 2 * iy)];
 
-  return ((double)1 / (double)9) * hx * hy * integrand_sum;
+  return (1.0 / 9.0) * hx * hy * integrand_sum;
 }
 
-void CCE_Export_Interpolate_On_Sphere_With_Derivatives(
+void Interpolate_On_Sphere_With_Derivativese(
     CCTK_ARGUMENTS, vector<CCTK_REAL> &xs, vector<CCTK_REAL> &ys,
     vector<CCTK_REAL> &zs, string name, vector<CCTK_REAL> &sphere_values,
     vector<CCTK_REAL> &sphere_dx, vector<CCTK_REAL> &sphere_dy,
@@ -145,11 +143,10 @@ void CCE_Export_Interpolate_On_Sphere_With_Derivatives(
       num_output_arrays, output_array_types, output_arrays);
 }
 
-void CCE_Export_Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
-                                      vector<CCTK_REAL> &ys,
-                                      vector<CCTK_REAL> &zs, string name,
-                                      vector<CCTK_REAL> &sphere_values,
-                                      CCTK_INT array_size) {
+void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
+                           vector<CCTK_REAL> &ys, vector<CCTK_REAL> &zs,
+                           string name, vector<CCTK_REAL> &sphere_values,
+                           CCTK_INT array_size) {
   printf("In interpolate\n");
 
   CCTK_INT variable_index = CCTK_VarIndex(name.c_str());
@@ -198,23 +195,21 @@ void CCE_Export_Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
       num_output_arrays, output_array_types, output_arrays);
 }
 
-static inline int CCE_Export_Sphere_Index(int it, int ip, int ntheta) {
+static inline int Sphere_Index(int it, int ip, int ntheta) {
   return it + (ntheta + 1) * ip;
 }
 
 // Copied from Multipole
-void CCE_Export_Integrate(int array_size, int ntheta, int nphi,
-                          vector<CCTK_REAL> &array1r,
-                          vector<CCTK_REAL> &array1i,
-                          vector<CCTK_REAL> &array2r, vector<CCTK_REAL> &th,
-                          vector<CCTK_REAL> &ph, CCTK_REAL *outre,
-                          CCTK_REAL *outim) {
+void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
+               vector<CCTK_REAL> &array1i, vector<CCTK_REAL> &array2r,
+               vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, CCTK_REAL *outre,
+               CCTK_REAL *outim) {
   DECLARE_CCTK_PARAMETERS
 
-  int il = CCE_Export_Sphere_Index(0, 0, ntheta);
-  int iu = CCE_Export_Sphere_Index(1, 0, ntheta);
+  int il = Sphere_Index(0, 0, ntheta);
+  int iu = Sphere_Index(1, 0, ntheta);
   CCTK_REAL dth = th[iu] - th[il];
-  iu = CCE_Export_Sphere_Index(0, 1, ntheta);
+  iu = Sphere_Index(0, 1, ntheta);
   CCTK_REAL dph = ph[iu] - ph[il];
 
   static CCTK_REAL *fr = 0;
@@ -239,8 +234,8 @@ void CCE_Export_Integrate(int array_size, int ntheta, int nphi,
         CCTK_WARN_ABORT,
         "The Simpson integration method requires even ntheta and even nphi");
   }
-  *outre = CCE_Export_Simpson2DIntegral(fr, ntheta, nphi, dth, dph);
-  *outim = CCE_Export_Simpson2DIntegral(fi, ntheta, nphi, dth, dph);
+  *outre = Simpson2DIntegral(fr, ntheta, nphi, dth, dph);
+  *outim = Simpson2DIntegral(fi, ntheta, nphi, dth, dph);
 }
 
 void Decompose_Spherical_Harmonics(
@@ -252,9 +247,9 @@ void Decompose_Spherical_Harmonics(
   for (int l = 0; l < lmax + 1; l++) {
     for (int m = -l; m < l + 1; m++) {
       int mode_index = l_m_to_index(l, m);
-      CCE_Export_Integrate(array_size, ntheta, nphi, re_ylms.at(mode_index),
-                           im_ylms.at(mode_index), sphere_values, th, phi,
-                           &re_data.at(mode_index), &im_data.at(mode_index));
+      Integrate(array_size, ntheta, nphi, re_ylms.at(mode_index),
+                im_ylms.at(mode_index), sphere_values, th, phi,
+                &re_data.at(mode_index), &im_data.at(mode_index));
     }
   }
 }
@@ -748,12 +743,12 @@ void CCE_Export(CCTK_ARGUMENTS) {
       for (int j = i; j < 3; j++) {
         string second_component = index_to_component[j];
         // interpolate extrinsic curvature
-        CCE_Export_Interpolate_On_Sphere_With_Derivatives(
+        Interpolate_On_Sphere_With_Derivativese(
             CCTK_PASS_CTOC, xs, ys, zs,
             "ADMBase::k" + first_component + second_component, k.at(i).at(j),
             dx_k.at(i).at(j), dy_k.at(i).at(j), dz_k.at(i).at(j), array_size);
         // interpolate metric
-        CCE_Export_Interpolate_On_Sphere_With_Derivatives(
+        Interpolate_On_Sphere_With_Derivativese(
             CCTK_PASS_CTOC, xs, ys, zs,
             "ADMBase::g" + first_component + second_component, g.at(i).at(j),
             dx_g.at(i).at(j), dy_g.at(i).at(j), dz_g.at(i).at(j), array_size);
@@ -769,13 +764,13 @@ void CCE_Export(CCTK_ARGUMENTS) {
         }
       }
       // interpolate shift
-      CCE_Export_Interpolate_On_Sphere_With_Derivatives(
+      Interpolate_On_Sphere_With_Derivativese(
           CCTK_PASS_CTOC, xs, ys, zs, "ADMBase::beta" + first_component,
           beta.at(i), dx_beta.at(i), dy_beta.at(i), dz_beta.at(i), array_size);
       // interpolate time derivative of shift
-      CCE_Export_Interpolate_On_Sphere(CCTK_PASS_CTOC, xs, ys, zs,
-                                       "ADMBase::dtbeta" + first_component,
-                                       dt_beta.at(i), array_size);
+      Interpolate_On_Sphere(CCTK_PASS_CTOC, xs, ys, zs,
+                            "ADMBase::dtbeta" + first_component, dt_beta.at(i),
+                            array_size);
       // compute dr_beta
       for (int array_index = 0; array_index < array_size; array_index++) {
         dr_beta.at(i).at(array_index) =
@@ -785,12 +780,12 @@ void CCE_Export(CCTK_ARGUMENTS) {
       }
     }
     // interpolate lapse
-    CCE_Export_Interpolate_On_Sphere_With_Derivatives(
-        CCTK_PASS_CTOC, xs, ys, zs, "ADMBase::alp", alpha, dx_alpha, dy_alpha,
-        dz_alpha, array_size);
+    Interpolate_On_Sphere_With_Derivativese(CCTK_PASS_CTOC, xs, ys, zs,
+                                            "ADMBase::alp", alpha, dx_alpha,
+                                            dy_alpha, dz_alpha, array_size);
     // interpolate time derivative of lapse
-    CCE_Export_Interpolate_On_Sphere(CCTK_PASS_CTOC, xs, ys, zs,
-                                     "ADMBase::dtalp", dt_alpha, array_size);
+    Interpolate_On_Sphere(CCTK_PASS_CTOC, xs, ys, zs, "ADMBase::dtalp",
+                          dt_alpha, array_size);
     // compute dr_alpha
     for (int array_index = 0; array_index < array_size; array_index++) {
       dr_alpha.at(array_index) =
