@@ -34,7 +34,7 @@ void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
                vector<CCTK_REAL> &array1i, vector<CCTK_REAL> &array2r,
                vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, CCTK_REAL *outre,
                CCTK_REAL *outim);
-               
+
 void Decompose_Spherical_Harmonics(
     vector<CCTK_REAL> &th, vector<CCTK_REAL> &phi,
     vector<CCTK_REAL> &sphere_values, vector<CCTK_REAL> &re_data,
@@ -46,8 +46,6 @@ void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph,
                   vector<vector<CCTK_REAL> > &re_ylms,
                   vector<vector<CCTK_REAL> > &im_ylms, int lmax,
                   int array_size);
-
-
 
 void Create_Dataset(string datasetname, CCTK_REAL *data, int mode_count);
 

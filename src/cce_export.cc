@@ -16,7 +16,8 @@
 #include <hdf5.h>
 #endif
 
-using std::vector, std::string, std::ostringstream, std::map, std::ios, std::setprecision;
+using std::vector, std::string, std::ostringstream, std::map, std::ios,
+    std::setprecision;
 
 namespace CCE_export {
 
@@ -32,7 +33,9 @@ namespace CCE_export {
   } while (0)
 
 // Copied from Multipole
-#define idx(xx,yy) (assert((xx) <= nx), assert((xx) >= 0), assert((yy) <= ny), assert((yy) >= 0), ((xx) + (yy) * (nx+1)))
+#define idx(xx, yy)                                                            \
+  (assert((xx) <= nx), assert((xx) >= 0), assert((yy) <= ny),                  \
+   assert((yy) >= 0), ((xx) + (yy) * (nx + 1)))
 
 // Copied from Multipole
 CCTK_REAL Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_REAL hx,
@@ -91,7 +94,6 @@ void Interpolate_On_Sphere_With_Derivativese(
     vector<CCTK_REAL> &zs, string name, vector<CCTK_REAL> &sphere_values,
     vector<CCTK_REAL> &sphere_dx, vector<CCTK_REAL> &sphere_dy,
     vector<CCTK_REAL> &sphere_dz, CCTK_INT array_size) {
-  printf("In interpolate\n");
 
   CCTK_INT variable_index = CCTK_VarIndex(name.c_str());
 
@@ -147,7 +149,6 @@ void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
                            vector<CCTK_REAL> &ys, vector<CCTK_REAL> &zs,
                            string name, vector<CCTK_REAL> &sphere_values,
                            CCTK_INT array_size) {
-  printf("In interpolate\n");
 
   CCTK_INT variable_index = CCTK_VarIndex(name.c_str());
 
@@ -343,8 +344,6 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
   int mode_count = l_m_to_index(lmax, lmax) + 1;
 
   hid_t dataset = -1;
-  printf(datasetname.c_str());
-  printf("\n");
 
   if (dataset_exists(file, datasetname)) {
     dataset = H5Dopen(file, datasetname.c_str());
@@ -357,7 +356,6 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
     hsize_t chunk_dims[2] = {hsize_t(hdf5_chunk_size),
                              (hsize_t)(2 * mode_count + 1)};
     cparms = H5Pcreate(H5P_DATASET_CREATE);
-    printf("Property list handle: %lld\n", (long long)cparms);
     HDF5_ERROR(H5Pset_chunk(cparms, 2, chunk_dims));
 
     dataset = H5Dcreate(file, datasetname.c_str(), H5T_NATIVE_DOUBLE, dataspace,
@@ -368,17 +366,14 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
 
     // Create variable-length string datatype
     hid_t str_type = H5Tcopy(H5T_C_S1);
-    printf("string type: %lld\n", (long long)str_type);
     H5Tset_size(str_type, H5T_VARIABLE);
 
     // Create dataspace for array of strings
     hsize_t legend_dims[] = {(hsize_t)(2 * mode_count + 1)};
     hid_t space = H5Screate_simple(1, legend_dims, NULL);
-    printf("space: %lld\n", (long long)space);
 
     // Create attribute
     hid_t attr = H5Acreate(dataset, "Legend", str_type, space, H5P_DEFAULT);
-    printf("attr: %lld\n", (long long)attr);
 
     // Write array of strings
     char *legend[2 * mode_count + 1];
@@ -388,23 +383,14 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
         int mode_index = l_m_to_index(l, m);
         ostringstream re_label;
         re_label << "Re(" << l << "," << m << ")";
-        printf("%s\n", re_label.str().c_str());
         legend[2 * mode_index + 1] = strdup(re_label.str().c_str());
         ostringstream im_label;
         im_label << "Im(" << l << "," << m << ")";
-        printf("%s\n", im_label.str().c_str());
         legend[2 * mode_index + 2] = strdup(im_label.str().c_str());
       }
     }
-    printf("Made the legend array\n");
-    // for(int i = 0; i < 2*mode_count+1; i++) {
-    //   printf("%s\n", legend[i]);
-    // }
-
-    H5Awrite(attr, str_type, legend);
+     H5Awrite(attr, str_type, legend);
   }
-
-  printf("About to try to write to dataset\n");
 
   hid_t filespace = H5Dget_space(dataset);
 
@@ -527,7 +513,6 @@ void Output_Decomposed_Metric_Data(
       for (int l = 0; l <= lmax; l++) {
         for (int m = -l; m < l + 1; m++) {
           int mode_index = l_m_to_index(l, m);
-          // printf("%f, %f, %f\n", l, m, mode_index);
           data[2 * mode_index + 1] = re_g[i][j][mode_index];
           data[2 * mode_index + 2] = im_g[i][j][mode_index];
           dt_data[2 * mode_index + 1] = re_dt_g[i][j][mode_index];
@@ -643,12 +628,9 @@ void CCE_Export(CCTK_ARGUMENTS) {
 
   static string index_to_component[] = {"x", "y", "z"};
 
-  // const int ntheta = 50;
-  // const int nphi = 100;
   const int ntheta = 120;
   const int nphi = 240;
   const int array_size = (ntheta + 1) * (nphi + 1);
-  // const int array_size=ntheta*nphi;
 
   // extrinsic curvature, 3d vector (3, 3, array_size)
   vector<vector<vector<CCTK_REAL> > > k(
@@ -699,8 +681,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
   vector<CCTK_REAL> th(array_size);
   vector<CCTK_REAL> ph(array_size);
 
-  printf("CCE_Export: variables allocated\n");
-
   // Compute the theta and phi points as well as the corresponding x, y, z unit
   // vectors Based on the number of theta and phi points desired (ntheta, nphi)
   const CCTK_REAL PI = acos(-1.0);
@@ -717,11 +697,8 @@ void CCE_Export(CCTK_ARGUMENTS) {
     }
   }
 
-  printf("CCE_Export: th, phi, xhat, yhat, zhat initialized\n");
-
   // loop through the desired radii
   for (int r = 0; r < nradii; r++) {
-    printf("CCE_Export: in radius loop\n");
 
     // compute the values of x, y, z and the desired points on the sphere of
     // radius radius[r]
@@ -734,7 +711,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
         zs.at(array_index) = radius[r] * zhat.at(array_index);
       }
     }
-    printf("CCE_EXPORT: xs, ys, zs initialized\n");
 
     // Interpolate all the desired quantities onto the desired points on the
     // sphere
@@ -794,7 +770,7 @@ void CCE_Export(CCTK_ARGUMENTS) {
           (zs.at(array_index) / radius[r]) * dz_alpha.at(array_index);
     }
 
-    // compute time derivatives of the metric
+    // compute time derivatives of the metric using the following:
     // d_t g_ij = -2 alpha K_ij
     //            + beta^x dx g_ij + beta^y dy g_ij + beta^z dz g_ij
     //            + g_xi dj beta^x + g_yi dj beta^y + g_zi dj beta^z
@@ -821,6 +797,7 @@ void CCE_Export(CCTK_ARGUMENTS) {
           g.at(1).at(0).at(array_index) * dx_beta.at(1).at(array_index) +
           g.at(2).at(0).at(array_index) * dx_beta.at(2).at(array_index);
 
+      // dt g_xy
       dt_g.at(0).at(1).at(array_index) =
           -2 * alpha.at(array_index) * k.at(0).at(1).at(array_index) +
           beta.at(0).at(array_index) * dx_g.at(0).at(1).at(array_index) +
@@ -833,6 +810,7 @@ void CCE_Export(CCTK_ARGUMENTS) {
           g.at(1).at(1).at(array_index) * dx_beta.at(1).at(array_index) +
           g.at(2).at(1).at(array_index) * dx_beta.at(2).at(array_index);
 
+      // dt g_xz
       dt_g.at(0).at(2).at(array_index) =
           -2 * alpha.at(array_index) * k.at(0).at(2).at(array_index) +
           beta.at(0).at(array_index) * dx_g.at(0).at(2).at(array_index) +
@@ -845,6 +823,7 @@ void CCE_Export(CCTK_ARGUMENTS) {
           g.at(1).at(2).at(array_index) * dx_beta.at(1).at(array_index) +
           g.at(2).at(2).at(array_index) * dx_beta.at(2).at(array_index);
 
+      // dt g_yy
       dt_g.at(1).at(1).at(array_index) =
           -2 * alpha.at(array_index) * k.at(1).at(1).at(array_index) +
           beta.at(0).at(array_index) * dx_g.at(1).at(1).at(array_index) +
@@ -857,6 +836,7 @@ void CCE_Export(CCTK_ARGUMENTS) {
           g.at(1).at(1).at(array_index) * dy_beta.at(1).at(array_index) +
           g.at(2).at(1).at(array_index) * dy_beta.at(2).at(array_index);
 
+      // dt g_yz
       dt_g.at(1).at(2).at(array_index) =
           -2 * alpha.at(array_index) * k.at(1).at(2).at(array_index) +
           beta.at(0).at(array_index) * dx_g.at(1).at(2).at(array_index) +
@@ -869,6 +849,7 @@ void CCE_Export(CCTK_ARGUMENTS) {
           g.at(1).at(2).at(array_index) * dy_beta.at(1).at(array_index) +
           g.at(2).at(2).at(array_index) * dy_beta.at(2).at(array_index);
 
+      // dt g_zz
       dt_g.at(2).at(2).at(array_index) =
           -2 * alpha.at(array_index) * k.at(2).at(2).at(array_index) +
           beta.at(0).at(array_index) * dx_g.at(2).at(2).at(array_index) +
@@ -890,7 +871,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
     vector<vector<CCTK_REAL> > im_ylms(mode_count,
                                        vector<CCTK_REAL>(array_size));
 
-    printf("About to compute ylms\n");
     Compute_Ylms(th, ph, re_ylms, im_ylms, lmax, array_size);
 
     // Decompose g, dr_g, dt_g
@@ -921,7 +901,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
       }
     }
 
-    printf("Decomposed metric data\n");
     // Decompose beta, dr_beta, dt_beta
     // re_beta[i][mode]
     vector<vector<CCTK_REAL> > re_beta(3, vector<CCTK_REAL>(mode_count));
@@ -942,8 +921,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
                                     array_size, lmax, ntheta, nphi);
     }
 
-    printf("Decomposed shift data\n");
-
     // Decompose alpha, dr_alpha, dt_alpha
     vector<CCTK_REAL> re_alpha(mode_count);
     vector<CCTK_REAL> im_alpha(mode_count);
@@ -960,8 +937,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
                                   re_ylms, im_ylms, array_size, lmax, ntheta,
                                   nphi);
 
-    printf("Decomposed lapse data\n");
-
     // Store output in h5 file
     if (CCTK_MyProc(cctkGH) == 0) {
       Output_Decomposed_Metric_Data(
@@ -972,4 +947,4 @@ void CCE_Export(CCTK_ARGUMENTS) {
     }
   }
 }
-}
+} // namespace CCE_export
