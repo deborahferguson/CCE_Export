@@ -1,4 +1,5 @@
 #include "cce_export.hh"
+#include "interpolate.hh"
 #include <vector>
 #include <sys/stat.h>
 #include <iomanip>
@@ -612,12 +613,12 @@ void CCE_Export(CCTK_ARGUMENTS) {
       for (int j = i; j < 3; j++) {
         string second_component = index_to_component[j];
         // interpolate extrinsic curvature
-        Interpolate_On_Sphere_With_Derivativese(
+        Interpolate_On_Sphere_With_Derivatives(
             CCTK_PASS_CTOC, xs, ys, zs,
             "ADMBase::k" + first_component + second_component, k.at(i).at(j),
             dx_k.at(i).at(j), dy_k.at(i).at(j), dz_k.at(i).at(j), array_size);
         // interpolate metric
-        Interpolate_On_Sphere_With_Derivativese(
+        Interpolate_On_Sphere_With_Derivatives(
             CCTK_PASS_CTOC, xs, ys, zs,
             "ADMBase::g" + first_component + second_component, g.at(i).at(j),
             dx_g.at(i).at(j), dy_g.at(i).at(j), dz_g.at(i).at(j), array_size);
@@ -633,7 +634,7 @@ void CCE_Export(CCTK_ARGUMENTS) {
         }
       }
       // interpolate shift
-      Interpolate_On_Sphere_With_Derivativese(
+      Interpolate_On_Sphere_With_Derivatives(
           CCTK_PASS_CTOC, xs, ys, zs, "ADMBase::beta" + first_component,
           beta.at(i), dx_beta.at(i), dy_beta.at(i), dz_beta.at(i), array_size);
       // interpolate time derivative of shift
@@ -649,7 +650,7 @@ void CCE_Export(CCTK_ARGUMENTS) {
       }
     }
     // interpolate lapse
-    Interpolate_On_Sphere_With_Derivativese(CCTK_PASS_CTOC, xs, ys, zs,
+    Interpolate_On_Sphere_With_Derivatives(CCTK_PASS_CTOC, xs, ys, zs,
                                             "ADMBase::alp", alpha, dx_alpha,
                                             dy_alpha, dz_alpha, array_size);
     // interpolate time derivative of lapse

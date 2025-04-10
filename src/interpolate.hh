@@ -1,6 +1,15 @@
 #ifndef INTERPOLATE_HH
 #define INTERPOLATE_HH
+
 #include "cctk.h"
+#include "cctk_Arguments.h"
+#include "cctk_Functions.h"
+#include "cctk_Parameters.h"
+#include "util_Table.h"
+
+#include "vector"
+
+using std::vector;
 
 namespace CCE_export {
 

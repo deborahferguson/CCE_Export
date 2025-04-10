@@ -1,5 +1,11 @@
+#include "interpolate.hh"
+
+#include <string.h>
+
+using std::string;
+
 namespace CCE_export {
-void Interpolate_On_Sphere_With_Derivativese(
+void Interpolate_On_Sphere_With_Derivatives(
     CCTK_ARGUMENTS, vector<CCTK_REAL> &xs, vector<CCTK_REAL> &ys,
     vector<CCTK_REAL> &zs, string name, vector<CCTK_REAL> &sphere_values,
     vector<CCTK_REAL> &sphere_dx, vector<CCTK_REAL> &sphere_dy,
