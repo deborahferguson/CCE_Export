@@ -10,7 +10,9 @@
 #include <string>
 #include <vector>
 
-namespace CCE_Export {
+using std::vector, std::string;
+
+namespace CCE_export {
 
 extern "C" void CCE_Export(CCTK_ARGUMENTS);
 
@@ -65,6 +67,6 @@ void Output_Decomposed_Metric_Data(
     vector<CCTK_REAL> &im_dr_alpha, vector<CCTK_REAL> &re_dt_alpha,
     vector<CCTK_REAL> &im_dt_alpha, float radius, int lmax);
 
-} // namespace CCE_Export
+} // namespace CCE_export
 
 #endif // CCE_EXPORT_HH

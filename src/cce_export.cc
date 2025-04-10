@@ -16,6 +16,10 @@
 #include <hdf5.h>
 #endif
 
+using std::vector, std::string, std::ostringstream, std::map, std::ios, std::setprecision;
+
+namespace CCE_export {
+
 #define HDF5_ERROR(fn_call)                                                    \
   do {                                                                         \
     hid_t _error_code = fn_call;                                               \
@@ -28,9 +32,7 @@
   } while (0)
 
 // Copied from Multipole
-static inline int idx(xx, yy){(assert((xx) <= nx), assert((xx) >= 0),
-                               assert((yy) <= ny), assert((yy) >= 0),
-                               ((xx) + (yy) * (nx + 1)))}
+#define idx(xx,yy) (assert((xx) <= nx), assert((xx) >= 0), assert((yy) <= ny), assert((yy) >= 0), ((xx) + (yy) * (nx+1)))
 
 // Copied from Multipole
 CCTK_REAL Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_REAL hx,
@@ -236,6 +238,8 @@ void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
   *outim = Simpson2DIntegral(fi, ntheta, nphi, dth, dph);
 }
 
+static inline int l_m_to_index(int l, int m) { return l * l + l + m; }
+
 void Decompose_Spherical_Harmonics(
     vector<CCTK_REAL> &th, vector<CCTK_REAL> &phi,
     vector<CCTK_REAL> &sphere_values, vector<CCTK_REAL> &re_data,
@@ -251,8 +255,6 @@ void Decompose_Spherical_Harmonics(
     }
   }
 }
-
-static inline int l_m_to_index(int l, int m) { return l * l + l + m; }
 
 static inline CCTK_REAL factorial(CCTK_REAL x) {
   CCTK_REAL answer = 1;
@@ -969,4 +971,5 @@ void CCE_Export(CCTK_ARGUMENTS) {
           im_dt_alpha, radius[r], lmax);
     }
   }
+}
 }
