@@ -14,6 +14,9 @@ namespace CCE_Export {
 
 extern "C" void CCE_Export(CCTK_ARGUMENTS);
 
+CCTK_REAL Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_REAL hx,
+                            CCTK_REAL hy);
+
 void Interpolate_On_Sphere_With_Derivatives(
     CCTK_ARGUMENTS, vector<CCTK_REAL> &xs, vector<CCTK_REAL> &ys,
     vector<CCTK_REAL> &zs, std::string name, vector<CCTK_REAL> &sphere_values,
@@ -25,6 +28,11 @@ void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
                            std::string name, vector<CCTK_REAL> &sphere_values,
                            CCTK_INT array_size);
 
+void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
+               vector<CCTK_REAL> &array1i, vector<CCTK_REAL> &array2r,
+               vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, CCTK_REAL *outre,
+               CCTK_REAL *outim);
+               
 void Decompose_Spherical_Harmonics(
     vector<CCTK_REAL> &th, vector<CCTK_REAL> &phi,
     vector<CCTK_REAL> &sphere_values, vector<CCTK_REAL> &re_data,
@@ -32,21 +40,12 @@ void Decompose_Spherical_Harmonics(
     vector<vector<CCTK_REAL> > &im_ylms, int array_size, int lmax, int ntheta,
     int nphi);
 
-int l_m_to_index(int l, int m);
-
-CCTK_REAL factorial(CCTK_REAL x);
-
-CCTK_REAL Binomial_Coefficient(CCTK_REAL n, CCTK_REAL k);
-
-CCTK_REAL Legendre_Polynomial(int l, int m, CCTK_REAL x);
-
 void Compute_Ylms(vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph,
                   vector<vector<CCTK_REAL> > &re_ylms,
                   vector<vector<CCTK_REAL> > &im_ylms, int lmax,
                   int array_size);
 
-CCTK_REAL Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_REAL hx,
-                            CCTK_REAL hy);
+
 
 void Create_Dataset(string datasetname, CCTK_REAL *data, int mode_count);
 
@@ -65,11 +64,6 @@ void Output_Decomposed_Metric_Data(
     vector<CCTK_REAL> &im_alpha, vector<CCTK_REAL> &re_dr_alpha,
     vector<CCTK_REAL> &im_dr_alpha, vector<CCTK_REAL> &re_dt_alpha,
     vector<CCTK_REAL> &im_dt_alpha, float radius, int lmax);
-
-void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
-               vector<CCTK_REAL> &array1i, vector<CCTK_REAL> &array2r,
-               vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, CCTK_REAL *outre,
-               CCTK_REAL *outim);
 
 } // namespace CCE_Export
 

@@ -1,7 +1,5 @@
 #include "cce_export.hh"
 #include <vector>
-// #define H5_USE_16_API
-// #include <hdf5.h>
 #include <sys/stat.h>
 #include <iomanip>
 #include <string.h>
@@ -254,9 +252,9 @@ void Decompose_Spherical_Harmonics(
   }
 }
 
-int l_m_to_index(int l, int m) { return l * l + l + m; }
+static inline int l_m_to_index(int l, int m) { return l * l + l + m; }
 
-CCTK_REAL factorial(CCTK_REAL x) {
+static inline CCTK_REAL factorial(CCTK_REAL x) {
   CCTK_REAL answer = 1;
 
   while (x > 0) {
@@ -880,20 +878,7 @@ void CCE_Export(CCTK_ARGUMENTS) {
           g.at(0).at(2).at(array_index) * dz_beta.at(0).at(array_index) +
           g.at(1).at(2).at(array_index) * dz_beta.at(1).at(array_index) +
           g.at(2).at(2).at(array_index) * dz_beta.at(2).at(array_index);
-
-      // dt_g.at(1).at(0).at(array_index) = dt_g.at(0).at(1).at(array_index);
-
-      // dt_g.at(2).at(0).at(array_index) = dt_g.at(0).at(2).at(array_index);
-
-      // dt_g.at(2).at(1).at(array_index) = dt_g.at(1).at(2).at(array_index);
     }
-
-    // // print the values of gxx on the sphere
-    // printf("CCE_Export: theta\tphi\tgxx\n");
-    // for(int array_index=0; array_index<array_size; array_index++){
-    //   printf("%f\t%f\t%f\n", th[array_index], ph[array_index],
-    //   g.at(0).at(0).at(array_index));
-    // }
 
     // Integrate to obtain spherical harmonic decomposition
     const int lmax = 8;
@@ -905,56 +890,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
 
     printf("About to compute ylms\n");
     Compute_Ylms(th, ph, re_ylms, im_ylms, lmax, array_size);
-
-    // // print 0 0 mode
-    // printf("Ylms for 0 0 mode\n");
-    // printf("th\tph\tre(ylm)\tim(ylm)\n");
-    // int mode_index = l_m_to_index(0, 0);
-    // for(int array_index=0; array_index<array_size; array_index++){
-    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index],
-    //   re_ylms.at(mode_index).at(array_index),
-    //   im_ylms.at(mode_index).at(array_index));
-    // }
-
-    // // print 1 -1 mode
-    // printf("Ylms for 1 -1 mode\n");
-    // printf("th\tph\tre(ylm)\tim(ylm)\n");
-    // mode_index = l_m_to_index(1, -1);
-    // for(int array_index=0; array_index<array_size; array_index++){
-    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index],
-    //   re_ylms.at(mode_index).at(array_index),
-    //   im_ylms.at(mode_index).at(array_index));
-    // }
-
-    // // print 1 0 mode
-    // printf("Ylms for 1 0 mode\n");
-    // printf("th\tph\tre(ylm)\tim(ylm)\n");
-    // mode_index = l_m_to_index(1, 0);
-    // for(int array_index=0; array_index<array_size; array_index++){
-    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index],
-    //   re_ylms.at(mode_index).at(array_index),
-    //   im_ylms.at(mode_index).at(array_index));
-    // }
-
-    // // print 1 1 mode
-    // printf("Ylms for 1 1 mode\n");
-    // printf("th\tph\tre(ylm)\tim(ylm)\n");
-    // mode_index = l_m_to_index(1, 1);
-    // for(int array_index=0; array_index<array_size; array_index++){
-    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index],
-    //   re_ylms.at(mode_index).at(array_index),
-    //   im_ylms.at(mode_index).at(array_index));
-    // }
-
-    // // print 2 2 mode
-    // printf("Ylms for 2 2 mode\n");
-    // printf("th\tph\tre(ylm)\tim(ylm)\n");
-    // mode_index = l_m_to_index(2, 2);
-    // for(int array_index=0; array_index<array_size; array_index++){
-    //   printf("%f\t%f\t%f\t%f\n", th[array_index], ph[array_index],
-    //   re_ylms.at(mode_index).at(array_index),
-    //   im_ylms.at(mode_index).at(array_index));
-    // }
 
     // Decompose g, dr_g, dt_g
     // re_g[i][j][mode], im_g[i][j][mode]
@@ -984,17 +919,7 @@ void CCE_Export(CCTK_ARGUMENTS) {
       }
     }
 
-    // printf("CCE_Export: l\tm\tre_gxx_lm\tim_gxx_lm\n");
-    // for(int l=0; l<lmax+1; l++){
-    //   for(int m=-l; m<l+1; m++){
-    // 	int mode_index = l_m_to_index(l, m);
-    // 	printf("%d\t%d\t%f\t%f\n", l, m, re_g.at(0).at(0).at(mode_index),
-    // im_g.at(0).at(0).at(mode_index));
-    //   }
-    // }
-
     printf("Decomposed metric data\n");
-
     // Decompose beta, dr_beta, dt_beta
     // re_beta[i][mode]
     vector<vector<CCTK_REAL> > re_beta(3, vector<CCTK_REAL>(mode_count));
