@@ -19,17 +19,6 @@ extern "C" void CCE_Export(CCTK_ARGUMENTS);
 CCTK_REAL Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_REAL hx,
                             CCTK_REAL hy);
 
-void Interpolate_On_Sphere_With_Derivatives(
-    CCTK_ARGUMENTS, vector<CCTK_REAL> &xs, vector<CCTK_REAL> &ys,
-    vector<CCTK_REAL> &zs, std::string name, vector<CCTK_REAL> &sphere_values,
-    vector<CCTK_REAL> &sphere_dx, vector<CCTK_REAL> &sphere_dy,
-    vector<CCTK_REAL> &sphere_dz, CCTK_INT array_size);
-
-void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
-                           vector<CCTK_REAL> &ys, vector<CCTK_REAL> &zs,
-                           std::string name, vector<CCTK_REAL> &sphere_values,
-                           CCTK_INT array_size);
-
 void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
                vector<CCTK_REAL> &array1i, vector<CCTK_REAL> &array2r,
                vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, CCTK_REAL *outre,

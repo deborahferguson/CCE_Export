@@ -1,1 +1,1 @@
-SRCS=cce_export.cc
+SRCS=cce_export.cc interpolate.cc
