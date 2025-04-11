@@ -75,16 +75,9 @@ void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
   iu = Sphere_Index(0, 1, ntheta);
   CCTK_REAL dph = ph[iu] - ph[il];
 
-  static CCTK_REAL *fr = 0;
-  static CCTK_REAL *fi = 0;
-  static bool allocated_memory = false;
-
   // Construct an array for the real integrand
-  if (!allocated_memory) {
-    fr = new CCTK_REAL[array_size];
-    fi = new CCTK_REAL[array_size];
-    allocated_memory = true;
-  }
+  static auto fr = std::make_unique<CCTK_REAL []>(array_size);
+  static auto fi = std::make_unique<CCTK_REAL []>(array_size);
 
   // the below calculations take the integral of conj(array1)*array2*sin(th)
   for (int i = 0; i < array_size; i++) {
