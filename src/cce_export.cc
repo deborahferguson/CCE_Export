@@ -21,6 +21,8 @@ void CCE_Export(CCTK_ARGUMENTS) {
   const int nphi = 240;
   const int array_size = (ntheta + 1) * (nphi + 1);
   const CCTK_REAL PI = acos(-1.0);
+  const int lmax = 8;
+  const int mode_count = l_m_to_index(lmax, lmax) + 1;
 
   // Variables on the spheres
   // extrinsic curvature, 3d vector (3, 3, array_size)
@@ -126,12 +128,10 @@ void CCE_Export(CCTK_ARGUMENTS) {
     Extract_Metric_Shift_Lapse_On_Sphere(
         CCTK_PASS_CTOC, k, dx_k, dy_k, dz_k, g, dx_g, dy_g, dz_g, dr_g, dt_g,
         beta, dx_beta, dy_beta, dz_beta, dr_beta, dt_beta, alpha, dx_alpha,
-        dy_alpha, dz_alpha, dr_alpha, dr_alpha, th, ph, xhat, yhat, zhat, xs,
+        dy_alpha, dz_alpha, dr_alpha, dt_alpha, th, ph, xhat, yhat, zhat, xs,
         ys, zs, ntheta, nphi, array_size, r);
 
     // Decompose into spherical harmonics
-    const int lmax = 8;
-    const int mode_count = l_m_to_index(lmax, lmax) + 1;
     Compute_Ylms(th, ph, re_ylms, im_ylms, lmax, array_size);
 
     // Decompose g, dr_g, dt_g
