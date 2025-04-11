@@ -17,7 +17,8 @@
 #define H5_USE_16_API
 #include <hdf5.h>
 
-using std::vector, std::string, std::ostringstream, std::map, std::ios, std::setprecision;
+using std::vector, std::string, std::ostringstream, std::map, std::ios,
+    std::setprecision;
 
 namespace CCE_export {
 
