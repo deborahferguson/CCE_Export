@@ -91,9 +91,9 @@ void CCE_Export(CCTK_ARGUMENTS) {
 
     // Extract the metric, shift, and lapse data on sphere of desired radius
     Extract_Metric_Shift_Lapse_On_Sphere(
-        k, dx_k, dy_k, dz_k, g, dx_g, dy_g, dz_g, dr_g, dt_g, beta, dx_beta,
+					 CCTK_PASS_CTOC, k, dx_k, dy_k, dz_k, g, dx_g, dy_g, dz_g, dr_g, dt_g, beta, dx_beta,
         dy_beta, dz_beta, dr_beta, dt_beta, alpha, dx_alpha, dy_alpha, dz_alpha,
-        dr_alpha, dr_alpha, th, ph, xhat, yhat, zhat, sx, ys, zs, ntheta, nphi,
+        dr_alpha, dr_alpha, th, ph, xhat, yhat, zhat, xs, ys, zs, ntheta, nphi,
         array_size, r);
 
     // Decompose into spherical harmonics
