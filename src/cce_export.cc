@@ -20,7 +20,9 @@ void CCE_Export(CCTK_ARGUMENTS) {
   const int ntheta = 120;
   const int nphi = 240;
   const int array_size = (ntheta + 1) * (nphi + 1);
+  const CCTK_REAL PI = acos(-1.0);
 
+  // Variables on the spheres
   // extrinsic curvature, 3d vector (3, 3, array_size)
   vector<vector<vector<CCTK_REAL> > > k(
       3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(array_size)));
@@ -70,10 +72,41 @@ void CCE_Export(CCTK_ARGUMENTS) {
   vector<CCTK_REAL> ys(array_size);
   vector<CCTK_REAL> zs(array_size);
 
+  // Spherical harmonic values (Y_lm), vector (mode_count)
+  vector<vector<CCTK_REAL> > re_ylms(mode_count, vector<CCTK_REAL>(array_size));
+  vector<vector<CCTK_REAL> > im_ylms(mode_count, vector<CCTK_REAL>(array_size));
+
+  // Variables decomposed into spherical harmonics
+  // metric, 3d vector (3, 3, mode_count)
+  vector<vector<vector<CCTK_REAL> > > re_g(
+      3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
+  vector<vector<vector<CCTK_REAL> > > im_g(
+      3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
+  vector<vector<vector<CCTK_REAL> > > re_dr_g(
+      3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
+  vector<vector<vector<CCTK_REAL> > > im_dr_g(
+      3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
+  vector<vector<vector<CCTK_REAL> > > re_dt_g(
+      3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
+  vector<vector<vector<CCTK_REAL> > > im_dt_g(
+      3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
+  // shift (beta), 2d vector (3, mode_count)
+  vector<vector<CCTK_REAL> > re_beta(3, vector<CCTK_REAL>(mode_count));
+  vector<vector<CCTK_REAL> > im_beta(3, vector<CCTK_REAL>(mode_count));
+  vector<vector<CCTK_REAL> > re_dr_beta(3, vector<CCTK_REAL>(mode_count));
+  vector<vector<CCTK_REAL> > im_dr_beta(3, vector<CCTK_REAL>(mode_count));
+  vector<vector<CCTK_REAL> > re_dt_beta(3, vector<CCTK_REAL>(mode_count));
+  vector<vector<CCTK_REAL> > im_dt_beta(3, vector<CCTK_REAL>(mode_count));
+  // lapse (alpha), vector (mode_count)
+  vector<CCTK_REAL> re_alpha(mode_count);
+  vector<CCTK_REAL> im_alpha(mode_count);
+  vector<CCTK_REAL> re_dr_alpha(mode_count);
+  vector<CCTK_REAL> im_dr_alpha(mode_count);
+  vector<CCTK_REAL> re_dt_alpha(mode_count);
+  vector<CCTK_REAL> im_dt_alpha(mode_count);
+
   // Compute the theta and phi points as well as the corresponding x, y, z unit
   // vectors Based on the number of theta and phi points desired (ntheta, nphi)
-  const CCTK_REAL PI = acos(-1.0);
-
   for (int theta_index = 0; theta_index <= ntheta; theta_index++) {
     for (int phi_index = 0; phi_index <= nphi; phi_index++) {
       const int array_index = theta_index + (ntheta + 1) * phi_index;
@@ -91,34 +124,17 @@ void CCE_Export(CCTK_ARGUMENTS) {
 
     // Extract the metric, shift, and lapse data on sphere of desired radius
     Extract_Metric_Shift_Lapse_On_Sphere(
-					 CCTK_PASS_CTOC, k, dx_k, dy_k, dz_k, g, dx_g, dy_g, dz_g, dr_g, dt_g, beta, dx_beta,
-        dy_beta, dz_beta, dr_beta, dt_beta, alpha, dx_alpha, dy_alpha, dz_alpha,
-        dr_alpha, dr_alpha, th, ph, xhat, yhat, zhat, xs, ys, zs, ntheta, nphi,
-        array_size, r);
+        CCTK_PASS_CTOC, k, dx_k, dy_k, dz_k, g, dx_g, dy_g, dz_g, dr_g, dt_g,
+        beta, dx_beta, dy_beta, dz_beta, dr_beta, dt_beta, alpha, dx_alpha,
+        dy_alpha, dz_alpha, dr_alpha, dr_alpha, th, ph, xhat, yhat, zhat, xs,
+        ys, zs, ntheta, nphi, array_size, r);
 
     // Decompose into spherical harmonics
     const int lmax = 8;
     const int mode_count = l_m_to_index(lmax, lmax) + 1;
-    vector<vector<CCTK_REAL> > re_ylms(mode_count,
-                                       vector<CCTK_REAL>(array_size));
-    vector<vector<CCTK_REAL> > im_ylms(mode_count,
-                                       vector<CCTK_REAL>(array_size));
-
     Compute_Ylms(th, ph, re_ylms, im_ylms, lmax, array_size);
 
     // Decompose g, dr_g, dt_g
-    vector<vector<vector<CCTK_REAL> > > re_g(
-        3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
-    vector<vector<vector<CCTK_REAL> > > im_g(
-        3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
-    vector<vector<vector<CCTK_REAL> > > re_dr_g(
-        3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
-    vector<vector<vector<CCTK_REAL> > > im_dr_g(
-        3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
-    vector<vector<vector<CCTK_REAL> > > re_dt_g(
-        3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
-    vector<vector<vector<CCTK_REAL> > > im_dt_g(
-        3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
     for (int i = 0; i < 3; i++) {
       for (int j = i; j < 3; j++) {
         Decompose_Spherical_Harmonics(th, ph, g.at(i).at(j), re_g.at(i).at(j),
@@ -134,12 +150,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
     }
 
     // Decompose beta, dr_beta, dt_beta
-    vector<vector<CCTK_REAL> > re_beta(3, vector<CCTK_REAL>(mode_count));
-    vector<vector<CCTK_REAL> > im_beta(3, vector<CCTK_REAL>(mode_count));
-    vector<vector<CCTK_REAL> > re_dr_beta(3, vector<CCTK_REAL>(mode_count));
-    vector<vector<CCTK_REAL> > im_dr_beta(3, vector<CCTK_REAL>(mode_count));
-    vector<vector<CCTK_REAL> > re_dt_beta(3, vector<CCTK_REAL>(mode_count));
-    vector<vector<CCTK_REAL> > im_dt_beta(3, vector<CCTK_REAL>(mode_count));
     for (int i = 0; i < 3; i++) {
       Decompose_Spherical_Harmonics(th, ph, beta.at(i), re_beta.at(i),
                                     im_beta.at(i), re_ylms, im_ylms, array_size,
@@ -153,12 +163,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
     }
 
     // Decompose alpha, dr_alpha, dt_alpha
-    vector<CCTK_REAL> re_alpha(mode_count);
-    vector<CCTK_REAL> im_alpha(mode_count);
-    vector<CCTK_REAL> re_dr_alpha(mode_count);
-    vector<CCTK_REAL> im_dr_alpha(mode_count);
-    vector<CCTK_REAL> re_dt_alpha(mode_count);
-    vector<CCTK_REAL> im_dt_alpha(mode_count);
     Decompose_Spherical_Harmonics(th, ph, alpha, re_alpha, im_alpha, re_ylms,
                                   im_ylms, array_size, lmax, ntheta, nphi);
     Decompose_Spherical_Harmonics(th, ph, dr_alpha, re_dr_alpha, im_dr_alpha,
