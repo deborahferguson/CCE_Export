@@ -12,6 +12,10 @@
 
 using std::vector, std::string;
 
+namespace CCE_export {
+
 extern "C" void CCE_Export(CCTK_ARGUMENTS);
+
+} // namespace CCE_export
 
 #endif // CCE_EXPORT_HH

@@ -68,7 +68,6 @@ void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
                vector<CCTK_REAL> &array1i, vector<CCTK_REAL> &array2r,
                vector<CCTK_REAL> &th, vector<CCTK_REAL> &ph, CCTK_REAL *outre,
                CCTK_REAL *outim) {
-  DECLARE_CCTK_PARAMETERS
 
   int il = Sphere_Index(0, 0, ntheta);
   int iu = Sphere_Index(1, 0, ntheta);

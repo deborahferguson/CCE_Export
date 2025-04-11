@@ -2,8 +2,9 @@
 #define SPHERICAL_HARMONIC_DECOMPOSITION_HH
 
 #include "cctk.h"
+#include "utils.hh"
 
-#include <string>
+#include <vector>
 
 using std::vector;
 
