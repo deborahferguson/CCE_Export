@@ -17,10 +17,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTS;
   DECLARE_CCTK_PARAMETERS;
 
-  printf("CCE_Export: starting\n");
-
-  static string index_to_component[] = {"x", "y", "z"};
-
   const int ntheta = 120;
   const int nphi = 240;
   const int array_size = (ntheta + 1) * (nphi + 1);
@@ -62,17 +58,17 @@ void CCE_Export(CCTK_ARGUMENTS) {
   vector<CCTK_REAL> dr_alpha(array_size);
   vector<CCTK_REAL> dt_alpha(array_size);
 
-  // x, y, z values of points on the sphere
-  vector<CCTK_REAL> xs(array_size);
-  vector<CCTK_REAL> ys(array_size);
-  vector<CCTK_REAL> zs(array_size);
+  // theta and phi points on the sphere
+  vector<CCTK_REAL> th(array_size);
+  vector<CCTK_REAL> ph(array_size);
   // x, y, z unit vectors toward theta and phi points on the sphere
   vector<CCTK_REAL> xhat(array_size);
   vector<CCTK_REAL> yhat(array_size);
   vector<CCTK_REAL> zhat(array_size);
-  // theta and phi points on the sphere
-  vector<CCTK_REAL> th(array_size);
-  vector<CCTK_REAL> ph(array_size);
+  // x, y, z values of points on the sphere
+  vector<CCTK_REAL> xs(array_size);
+  vector<CCTK_REAL> ys(array_size);
+  vector<CCTK_REAL> zs(array_size);
 
   // Compute the theta and phi points as well as the corresponding x, y, z unit
   // vectors Based on the number of theta and phi points desired (ntheta, nphi)
@@ -93,170 +89,14 @@ void CCE_Export(CCTK_ARGUMENTS) {
   // loop through the desired radii
   for (int r = 0; r < nradii; r++) {
 
-    // compute the values of x, y, z and the desired points on the sphere of
-    // radius radius[r]
-    for (int theta_index = 0; theta_index <= ntheta; theta_index++) {
-      for (int phi_index = 0; phi_index <= nphi; phi_index++) {
-        const int array_index = theta_index + (ntheta + 1) * phi_index;
+    // Extract the metric, shift, and lapse data on sphere of desired radius
+    Extract_Metric_Shift_Lapse_On_Sphere(
+        k, dx_k, dy_k, dz_k, g, dx_g, dy_g, dz_g, dr_g, dt_g, beta, dx_beta,
+        dy_beta, dz_beta, dr_beta, dt_beta, alpha, dx_alpha, dy_alpha, dz_alpha,
+        dr_alpha, dr_alpha, th, ph, xhat, yhat, zhat, sx, ys, zs, ntheta, nphi,
+        array_size, r);
 
-        xs.at(array_index) = radius[r] * xhat.at(array_index);
-        ys.at(array_index) = radius[r] * yhat.at(array_index);
-        zs.at(array_index) = radius[r] * zhat.at(array_index);
-      }
-    }
-
-    // Interpolate all the desired quantities onto the desired points on the
-    // sphere
-    for (int i = 0; i < 3; i++) {
-      string first_component = index_to_component[i];
-      for (int j = i; j < 3; j++) {
-        string second_component = index_to_component[j];
-        // interpolate extrinsic curvature
-        Interpolate_On_Sphere_With_Derivatives(
-            CCTK_PASS_CTOC, xs, ys, zs,
-            "ADMBase::k" + first_component + second_component, k.at(i).at(j),
-            dx_k.at(i).at(j), dy_k.at(i).at(j), dz_k.at(i).at(j), array_size);
-        // interpolate metric
-        Interpolate_On_Sphere_With_Derivatives(
-            CCTK_PASS_CTOC, xs, ys, zs,
-            "ADMBase::g" + first_component + second_component, g.at(i).at(j),
-            dx_g.at(i).at(j), dy_g.at(i).at(j), dz_g.at(i).at(j), array_size);
-        // compute dr_g
-        for (int array_index = 0; array_index < array_size; array_index++) {
-          dr_g.at(i).at(j).at(array_index) =
-              (xs.at(array_index) / radius[r]) *
-                  dx_g.at(i).at(j).at(array_index) +
-              (ys.at(array_index) / radius[r]) *
-                  dy_g.at(i).at(j).at(array_index) +
-              (zs.at(array_index) / radius[r]) *
-                  dz_g.at(i).at(j).at(array_index);
-        }
-      }
-      // interpolate shift
-      Interpolate_On_Sphere_With_Derivatives(
-          CCTK_PASS_CTOC, xs, ys, zs, "ADMBase::beta" + first_component,
-          beta.at(i), dx_beta.at(i), dy_beta.at(i), dz_beta.at(i), array_size);
-      // interpolate time derivative of shift
-      Interpolate_On_Sphere(CCTK_PASS_CTOC, xs, ys, zs,
-                            "ADMBase::dtbeta" + first_component, dt_beta.at(i),
-                            array_size);
-      // compute dr_beta
-      for (int array_index = 0; array_index < array_size; array_index++) {
-        dr_beta.at(i).at(array_index) =
-            (xs.at(array_index) / radius[r]) * dx_beta.at(i).at(array_index) +
-            (ys.at(array_index) / radius[r]) * dy_beta.at(i).at(array_index) +
-            (zs.at(array_index) / radius[r]) * dz_beta.at(i).at(array_index);
-      }
-    }
-    // interpolate lapse
-    Interpolate_On_Sphere_With_Derivatives(CCTK_PASS_CTOC, xs, ys, zs,
-                                           "ADMBase::alp", alpha, dx_alpha,
-                                           dy_alpha, dz_alpha, array_size);
-    // interpolate time derivative of lapse
-    Interpolate_On_Sphere(CCTK_PASS_CTOC, xs, ys, zs, "ADMBase::dtalp",
-                          dt_alpha, array_size);
-    // compute dr_alpha
-    for (int array_index = 0; array_index < array_size; array_index++) {
-      dr_alpha.at(array_index) =
-          (xs.at(array_index) / radius[r]) * dx_alpha.at(array_index) +
-          (ys.at(array_index) / radius[r]) * dy_alpha.at(array_index) +
-          (zs.at(array_index) / radius[r]) * dz_alpha.at(array_index);
-    }
-
-    // compute time derivatives of the metric using the following:
-    // d_t g_ij = -2 alpha K_ij
-    //            + beta^x dx g_ij + beta^y dy g_ij + beta^z dz g_ij
-    //            + g_xi dj beta^x + g_yi dj beta^y + g_zi dj beta^z
-    //            + g_xj di beta^x + g_yj di beta^y + g_zj di beta^z
-
-    // define redundant metric components
-    for (int array_index = 0; array_index < array_size; array_index++) {
-      g.at(1).at(0).at(array_index) = g.at(0).at(1).at(array_index);
-      g.at(2).at(0).at(array_index) = g.at(0).at(2).at(array_index);
-      g.at(2).at(1).at(array_index) = g.at(1).at(2).at(array_index);
-    }
-
-    // dt g_xx
-    for (int array_index = 0; array_index < array_size; array_index++) {
-      dt_g.at(0).at(0).at(array_index) =
-          -2 * alpha.at(array_index) * k.at(0).at(0).at(array_index) +
-          beta.at(0).at(array_index) * dx_g.at(0).at(0).at(array_index) +
-          beta.at(1).at(array_index) * dy_g.at(0).at(0).at(array_index) +
-          beta.at(2).at(array_index) * dz_g.at(0).at(0).at(array_index) +
-          g.at(0).at(0).at(array_index) * dx_beta.at(0).at(array_index) +
-          g.at(1).at(0).at(array_index) * dx_beta.at(1).at(array_index) +
-          g.at(2).at(0).at(array_index) * dx_beta.at(2).at(array_index) +
-          g.at(0).at(0).at(array_index) * dx_beta.at(0).at(array_index) +
-          g.at(1).at(0).at(array_index) * dx_beta.at(1).at(array_index) +
-          g.at(2).at(0).at(array_index) * dx_beta.at(2).at(array_index);
-
-      // dt g_xy
-      dt_g.at(0).at(1).at(array_index) =
-          -2 * alpha.at(array_index) * k.at(0).at(1).at(array_index) +
-          beta.at(0).at(array_index) * dx_g.at(0).at(1).at(array_index) +
-          beta.at(1).at(array_index) * dy_g.at(0).at(1).at(array_index) +
-          beta.at(2).at(array_index) * dz_g.at(0).at(1).at(array_index) +
-          g.at(0).at(0).at(array_index) * dy_beta.at(0).at(array_index) +
-          g.at(1).at(0).at(array_index) * dy_beta.at(1).at(array_index) +
-          g.at(2).at(0).at(array_index) * dy_beta.at(2).at(array_index) +
-          g.at(0).at(1).at(array_index) * dx_beta.at(0).at(array_index) +
-          g.at(1).at(1).at(array_index) * dx_beta.at(1).at(array_index) +
-          g.at(2).at(1).at(array_index) * dx_beta.at(2).at(array_index);
-
-      // dt g_xz
-      dt_g.at(0).at(2).at(array_index) =
-          -2 * alpha.at(array_index) * k.at(0).at(2).at(array_index) +
-          beta.at(0).at(array_index) * dx_g.at(0).at(2).at(array_index) +
-          beta.at(1).at(array_index) * dy_g.at(0).at(2).at(array_index) +
-          beta.at(2).at(array_index) * dz_g.at(0).at(2).at(array_index) +
-          g.at(0).at(0).at(array_index) * dz_beta.at(0).at(array_index) +
-          g.at(1).at(0).at(array_index) * dz_beta.at(1).at(array_index) +
-          g.at(2).at(0).at(array_index) * dz_beta.at(2).at(array_index) +
-          g.at(0).at(2).at(array_index) * dx_beta.at(0).at(array_index) +
-          g.at(1).at(2).at(array_index) * dx_beta.at(1).at(array_index) +
-          g.at(2).at(2).at(array_index) * dx_beta.at(2).at(array_index);
-
-      // dt g_yy
-      dt_g.at(1).at(1).at(array_index) =
-          -2 * alpha.at(array_index) * k.at(1).at(1).at(array_index) +
-          beta.at(0).at(array_index) * dx_g.at(1).at(1).at(array_index) +
-          beta.at(1).at(array_index) * dy_g.at(1).at(1).at(array_index) +
-          beta.at(2).at(array_index) * dz_g.at(1).at(1).at(array_index) +
-          g.at(0).at(1).at(array_index) * dy_beta.at(0).at(array_index) +
-          g.at(1).at(1).at(array_index) * dy_beta.at(1).at(array_index) +
-          g.at(2).at(1).at(array_index) * dy_beta.at(2).at(array_index) +
-          g.at(0).at(1).at(array_index) * dy_beta.at(0).at(array_index) +
-          g.at(1).at(1).at(array_index) * dy_beta.at(1).at(array_index) +
-          g.at(2).at(1).at(array_index) * dy_beta.at(2).at(array_index);
-
-      // dt g_yz
-      dt_g.at(1).at(2).at(array_index) =
-          -2 * alpha.at(array_index) * k.at(1).at(2).at(array_index) +
-          beta.at(0).at(array_index) * dx_g.at(1).at(2).at(array_index) +
-          beta.at(1).at(array_index) * dy_g.at(1).at(2).at(array_index) +
-          beta.at(2).at(array_index) * dz_g.at(1).at(2).at(array_index) +
-          g.at(0).at(1).at(array_index) * dz_beta.at(0).at(array_index) +
-          g.at(1).at(1).at(array_index) * dz_beta.at(1).at(array_index) +
-          g.at(2).at(1).at(array_index) * dz_beta.at(2).at(array_index) +
-          g.at(0).at(2).at(array_index) * dy_beta.at(0).at(array_index) +
-          g.at(1).at(2).at(array_index) * dy_beta.at(1).at(array_index) +
-          g.at(2).at(2).at(array_index) * dy_beta.at(2).at(array_index);
-
-      // dt g_zz
-      dt_g.at(2).at(2).at(array_index) =
-          -2 * alpha.at(array_index) * k.at(2).at(2).at(array_index) +
-          beta.at(0).at(array_index) * dx_g.at(2).at(2).at(array_index) +
-          beta.at(1).at(array_index) * dy_g.at(2).at(2).at(array_index) +
-          beta.at(2).at(array_index) * dz_g.at(2).at(2).at(array_index) +
-          g.at(0).at(2).at(array_index) * dz_beta.at(0).at(array_index) +
-          g.at(1).at(2).at(array_index) * dz_beta.at(1).at(array_index) +
-          g.at(2).at(2).at(array_index) * dz_beta.at(2).at(array_index) +
-          g.at(0).at(2).at(array_index) * dz_beta.at(0).at(array_index) +
-          g.at(1).at(2).at(array_index) * dz_beta.at(1).at(array_index) +
-          g.at(2).at(2).at(array_index) * dz_beta.at(2).at(array_index);
-    }
-
-    // Integrate to obtain spherical harmonic decomposition
+    // Decompose into spherical harmonics
     const int lmax = 8;
     const int mode_count = l_m_to_index(lmax, lmax) + 1;
     vector<vector<CCTK_REAL> > re_ylms(mode_count,
@@ -267,7 +107,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
     Compute_Ylms(th, ph, re_ylms, im_ylms, lmax, array_size);
 
     // Decompose g, dr_g, dt_g
-    // re_g[i][j][mode], im_g[i][j][mode]
     vector<vector<vector<CCTK_REAL> > > re_g(
         3, vector<vector<CCTK_REAL> >(3, vector<CCTK_REAL>(mode_count)));
     vector<vector<vector<CCTK_REAL> > > im_g(
@@ -295,7 +134,6 @@ void CCE_Export(CCTK_ARGUMENTS) {
     }
 
     // Decompose beta, dr_beta, dt_beta
-    // re_beta[i][mode]
     vector<vector<CCTK_REAL> > re_beta(3, vector<CCTK_REAL>(mode_count));
     vector<vector<CCTK_REAL> > im_beta(3, vector<CCTK_REAL>(mode_count));
     vector<vector<CCTK_REAL> > re_dr_beta(3, vector<CCTK_REAL>(mode_count));
