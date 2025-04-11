@@ -8,8 +8,9 @@
 #include "util_Table.h"
 
 #include "vector"
+#include "string"
 
-using std::vector;
+using std::vector, std::string;
 
 namespace CCE_export {
 

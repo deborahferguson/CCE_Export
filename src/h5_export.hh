@@ -6,21 +6,18 @@
 #include "cctk_Functions.h"
 #include "cctk_Parameters.h"
 
-#ifdef HAVE_CAPABILITY_HDF5
-// We currently support the HDF5 1.6 API (and when using 1.8 the
-// compatibility mode introduced by H5_USE_16_API).  Several machines
-// in SimFactory use HDF5 1.6, so we cannot drop support for it.  It
-// seems it is hard to support both the 1.6 and 1.8 API
-// simultaneously; for example H5Fopen takes a different number of
-// arguments in the two versions.
+#include "utils.hh"
+
+#include <sys/stat.h>
+#include <string.h>
+#include <vector>
+#include <map>
+#include <iomanip>
+
 #define H5_USE_16_API
 #include <hdf5.h>
-#endif
 
-#include <string>
-#include <vector>
-
-using std::vector, std::string;
+using std::vector, std::string, std::ostringstream, std::map, std::ios, std::setprecision;
 
 namespace CCE_export {
 

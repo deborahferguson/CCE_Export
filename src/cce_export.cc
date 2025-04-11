@@ -1,5 +1,6 @@
 #include "cce_export.hh"
 #include "interpolate.hh"
+#include "h5_export.hh"
 #include <vector>
 #include <sys/stat.h>
 #include <iomanip>
@@ -110,8 +111,6 @@ void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
   *outre = Simpson2DIntegral(fr, ntheta, nphi, dth, dph);
   *outim = Simpson2DIntegral(fi, ntheta, nphi, dth, dph);
 }
-
-static inline int l_m_to_index(int l, int m) { return l * l + l + m; }
 
 void Decompose_Spherical_Harmonics(
     vector<CCTK_REAL> &th, vector<CCTK_REAL> &phi,
@@ -506,6 +505,7 @@ void CCE_Export(CCTK_ARGUMENTS) {
           re_alpha, im_alpha, re_dr_alpha, im_dr_alpha, re_dt_alpha,
           im_dt_alpha, radius[r], lmax);
     }
+
   }
 }
 } // namespace CCE_export

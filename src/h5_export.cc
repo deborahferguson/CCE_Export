@@ -13,8 +13,6 @@ namespace CCE_export {
     }                                                                          \
   } while (0)
 
-#ifdef HAVE_CAPABILITY_HDF5
-
 static bool file_exists(const string &name) {
   struct stat sts;
   return !(stat(name.c_str(), &sts) == -1 && errno == ENOENT);
@@ -300,28 +298,5 @@ void Output_Decomposed_Metric_Data(
   Create_Dataset(CCTK_PASS_CTOC, file, dt_datasetname, dt_data, lmax);
   Create_Dataset(CCTK_PASS_CTOC, file, dr_datasetname, dr_data, lmax);
 }
-
-#else
-
-void Output_Decomposed_Metric_Data(
-    CCTK_ARGUMENTS, vector<vector<vector<CCTK_REAL> > > &re_g,
-    vector<vector<vector<CCTK_REAL> > > &im_g,
-    vector<vector<vector<CCTK_REAL> > > &re_dr_g,
-    vector<vector<vector<CCTK_REAL> > > &im_dr_g,
-    vector<vector<vector<CCTK_REAL> > > &re_dt_g,
-    vector<vector<vector<CCTK_REAL> > > &im_dt_g,
-    vector<vector<CCTK_REAL> > &re_beta, vector<vector<CCTK_REAL> > &im_beta,
-    vector<vector<CCTK_REAL> > &re_dr_beta,
-    vector<vector<CCTK_REAL> > &im_dr_beta,
-    vector<vector<CCTK_REAL> > &re_dt_beta,
-    vector<vector<CCTK_REAL> > &im_dt_beta, vector<CCTK_REAL> &re_alpha,
-    vector<CCTK_REAL> &im_alpha, vector<CCTK_REAL> &re_dr_alpha,
-    vector<CCTK_REAL> &im_dr_alpha, vector<CCTK_REAL> &re_dt_alpha,
-    vector<CCTK_REAL> &im_dt_alpha, float rad, int lmax) {
-  CCTK_WARN(0, "HDF5 output has been requested but Cactus has been compiled "
-               "without HDF5 support");
-}
-
-#endif
 
 } // namespace CCE_export
