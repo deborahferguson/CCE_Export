@@ -90,8 +90,8 @@ void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
         CCTK_WARN_ABORT,
         "The Simpson integration method requires even ntheta and even nphi");
   }
-  *outre = Simpson2DIntegral(fr, ntheta, nphi, dth, dph);
-  *outim = Simpson2DIntegral(fi, ntheta, nphi, dth, dph);
+  *outre = Simpson2DIntegral(fr.get(), ntheta, nphi, dth, dph);
+  *outim = Simpson2DIntegral(fi.get(), ntheta, nphi, dth, dph);
 }
 
 void Decompose_Spherical_Harmonics(

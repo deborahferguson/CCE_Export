@@ -5,6 +5,7 @@
 #include "utils.hh"
 
 #include <vector>
+#include <memory>
 
 using std::vector;
 
