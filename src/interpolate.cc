@@ -16,9 +16,9 @@ void Interpolate_On_Sphere_With_Derivatives(
   const CCTK_INT num_dims = 3;
   int ierr = -1;
 
-  const void *interp_coords[num_dims] = {(const void *)xs.data(),
-                                         (const void *)ys.data(),
-                                         (const void *)zs.data()};
+  const void *interp_coords[num_dims] = {static_cast<const void *>(xs.data()),
+                                         static_cast<const void *>(ys.data()),
+                                         static_cast<const void *>(zs.data())};
 
   const CCTK_INT input_array_indices[1] = {variable_index};
 
@@ -26,9 +26,10 @@ void Interpolate_On_Sphere_With_Derivatives(
       CCTK_VARIABLE_REAL, CCTK_VARIABLE_REAL, CCTK_VARIABLE_REAL,
       CCTK_VARIABLE_REAL};
 
-  void *output_arrays[4] = {(void *)sphere_values.data(),
-                            (void *)sphere_dx.data(), (void *)sphere_dy.data(),
-                            (void *)sphere_dz.data()};
+  void *output_arrays[4] = {static_cast<void *>(sphere_values.data()),
+                            static_cast<void *>(sphere_dx.data()),
+                            static_cast<void *>(sphere_dy.data()),
+                            static_cast<void *>(sphere_dz.data())};
 
   const int operator_handle =
       CCTK_InterpHandle("Hermite polynomial interpolation");
@@ -71,9 +72,9 @@ void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
   const CCTK_INT num_dims = 3;
   int ierr = -1;
 
-  const void *interp_coords[num_dims] = {(const void *)xs.data(),
-                                         (const void *)ys.data(),
-                                         (const void *)zs.data()};
+  const void *interp_coords[num_dims] = {static_cast<const void *>(xs.data()),
+                                         static_cast<const void *>(ys.data()),
+                                         static_cast<const void *>(zs.data())};
 
   const CCTK_INT input_array_indices[1] = {variable_index};
 
@@ -172,7 +173,8 @@ void Extract_Metric_Shift_Lapse_On_Sphere(
                 dx_g.at(i).at(j).at(array_index) +
             (ys.at(array_index) / radius[rad_index]) *
                 dy_g.at(i).at(j).at(array_index) +
-            (zs.at(array_index) / radius[rad_index]) * dz_g.at(i).at(j).at(array_index);
+            (zs.at(array_index) / radius[rad_index]) *
+                dz_g.at(i).at(j).at(array_index);
       }
     }
   }
@@ -190,10 +192,12 @@ void Extract_Metric_Shift_Lapse_On_Sphere(
                           array_size);
     // compute dr_beta
     for (int array_index = 0; array_index < array_size; array_index++) {
-      dr_beta.at(i).at(array_index) =
-          (xs.at(array_index) / radius[rad_index]) * dx_beta.at(i).at(array_index) +
-          (ys.at(array_index) / radius[rad_index]) * dy_beta.at(i).at(array_index) +
-          (zs.at(array_index) / radius[rad_index]) * dz_beta.at(i).at(array_index);
+      dr_beta.at(i).at(array_index) = (xs.at(array_index) / radius[rad_index]) *
+                                          dx_beta.at(i).at(array_index) +
+                                      (ys.at(array_index) / radius[rad_index]) *
+                                          dy_beta.at(i).at(array_index) +
+                                      (zs.at(array_index) / radius[rad_index]) *
+                                          dz_beta.at(i).at(array_index);
     }
   }
 

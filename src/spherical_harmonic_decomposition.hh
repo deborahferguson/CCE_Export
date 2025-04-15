@@ -6,8 +6,9 @@
 
 #include <vector>
 #include <memory>
+#include <cmath>
 
-using std::vector;
+using std::vector, std::sin, std::cos, std::pow;
 
 namespace CCE_export {
 
