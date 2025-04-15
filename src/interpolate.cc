@@ -14,7 +14,6 @@ void Interpolate_On_Sphere_With_Derivatives(
   CCTK_INT num_output_arrays = 4;
 
   const CCTK_INT num_dims = 3;
-  int ierr = -1;
 
   const void *interp_coords[num_dims] = {static_cast<const void *>(xs.data()),
                                          static_cast<const void *>(ys.data()),
@@ -35,7 +34,7 @@ void Interpolate_On_Sphere_With_Derivatives(
       CCTK_InterpHandle("Hermite polynomial interpolation");
 
   int param_table_handle = Util_TableCreate(UTIL_TABLE_FLAGS_DEFAULT);
-  ierr = Util_TableSetFromString(
+  Util_TableSetFromString(
       param_table_handle,
       "order=3 boundary_off_centering_tolerance={0.0 0.0 0.0 0.0 0.0 0.0} "
       "boundary_extrapolation_tolerance={0.0 0.0 0.0 0.0 0.0 0.0}");
@@ -50,7 +49,7 @@ void Interpolate_On_Sphere_With_Derivatives(
 
   const int coord_system_handle = CCTK_CoordSystemHandle("cart3d");
 
-  ierr = CCTK_InterpGridArrays(
+  CCTK_InterpGridArrays(
       cctkGH, num_dims, operator_handle, param_table_handle,
       coord_system_handle,
       CCTK_MyProc(cctkGH) == 0 ? array_size
@@ -70,7 +69,6 @@ void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
   CCTK_INT num_output_arrays = 1;
 
   const CCTK_INT num_dims = 3;
-  int ierr = -1;
 
   const void *interp_coords[num_dims] = {static_cast<const void *>(xs.data()),
                                          static_cast<const void *>(ys.data()),
@@ -86,7 +84,7 @@ void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
       CCTK_InterpHandle("Hermite polynomial interpolation");
 
   int param_table_handle = Util_TableCreate(UTIL_TABLE_FLAGS_DEFAULT);
-  ierr = Util_TableSetFromString(
+  Util_TableSetFromString(
       param_table_handle,
       "order=3 boundary_off_centering_tolerance={0.0 0.0 0.0 0.0 0.0 0.0} "
       "boundary_extrapolation_tolerance={0.0 0.0 0.0 0.0 0.0 0.0}");
@@ -101,7 +99,7 @@ void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
 
   const int coord_system_handle = CCTK_CoordSystemHandle("cart3d");
 
-  ierr = CCTK_InterpGridArrays(
+  CCTK_InterpGridArrays(
       cctkGH, num_dims, operator_handle, param_table_handle,
       coord_system_handle,
       CCTK_MyProc(cctkGH) == 0 ? array_size
