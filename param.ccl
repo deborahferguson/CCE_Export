@@ -1,4 +1,4 @@
-#param.ccl for thorn CCE_Export
+# Parameter definition for thorn CCE_Export
 
 CCTK_INT out_every "How often to output the metric data" STEERABLE=recover
 {

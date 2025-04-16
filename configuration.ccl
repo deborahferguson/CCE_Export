@@ -1,3 +1,5 @@
+# Configuration definitions for thorn CCE_Export
+
 OPTIONAL HDF5
 {
 }
