@@ -297,6 +297,8 @@ void Output_Decomposed_Metric_Data(
   Create_Dataset(CCTK_PASS_CTOC, file, datasetname, data, lmax);
   Create_Dataset(CCTK_PASS_CTOC, file, dt_datasetname, dt_data, lmax);
   Create_Dataset(CCTK_PASS_CTOC, file, dr_datasetname, dr_data, lmax);
+
+  HDF5_ERROR(H5Fclose(file));
 }
 
 } // namespace CCE_export
