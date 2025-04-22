@@ -1,0 +1,3 @@
+# Main make.configuration.defn file for thorn CCE_Export
+
+ALL_UTILS += hdf5_to_ascii
