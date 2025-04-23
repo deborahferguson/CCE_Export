@@ -188,31 +188,31 @@ void Output_Decomposed_Metric_Data(
         components = "zz";
       }
 
-      string datasetname = "g" + components + ".dat";
-      string dt_datasetname = "Dtg" + components + ".dat";
-      string dr_datasetname = "Drg" + components + ".dat";
+      string metric_datasetname = "g" + components + ".dat";
+      string metric_dt_datasetname = "Dtg" + components + ".dat";
+      string metric_dr_datasetname = "Drg" + components + ".dat";
 
-      CCTK_REAL data[2 * mode_count + 1];
-      CCTK_REAL dt_data[2 * mode_count + 1];
-      CCTK_REAL dr_data[2 * mode_count + 1];
-      data[0] = cctk_time;
-      dt_data[0] = cctk_time;
-      dr_data[0] = cctk_time;
+      vector<CCTK_REAL> metric_data(2 * mode_count + 1);
+      vector<CCTK_REAL> metric_dt_data(2 * mode_count + 1);
+      vector<CCTK_REAL> metric_dr_data(2 * mode_count + 1);
+      metric_data.at(0) = cctk_time;
+      metric_dt_data.at(0) = cctk_time;
+      metric_dr_data.at(0) = cctk_time;
       for (int l = 0; l <= lmax; l++) {
         for (int m = -l; m < l + 1; m++) {
           int mode_index = l_m_to_index(l, m);
-          data[2 * mode_index + 1] = re_g[i][j][mode_index];
-          data[2 * mode_index + 2] = im_g[i][j][mode_index];
-          dt_data[2 * mode_index + 1] = re_dt_g[i][j][mode_index];
-          dt_data[2 * mode_index + 2] = im_dt_g[i][j][mode_index];
-          dr_data[2 * mode_index + 1] = re_dr_g[i][j][mode_index];
-          dr_data[2 * mode_index + 2] = im_dr_g[i][j][mode_index];
+          metric_data.at(2 * mode_index + 1) = re_g.at(i).at(j).at(mode_index);
+          metric_data.at(2 * mode_index + 2) = im_g.at(i).at(j).at(mode_index);
+          metric_dt_data.at(2 * mode_index + 1) = re_dt_g.at(i).at(j).at(mode_index);
+          metric_dt_data.at(2 * mode_index + 2) = im_dt_g.at(i).at(j).at(mode_index);
+          metric_dr_data.at(2 * mode_index + 1) = re_dr_g.at(i).at(j).at(mode_index);
+          metric_dr_data.at(2 * mode_index + 2) = im_dr_g.at(i).at(j).at(mode_index);
         }
       }
 
-      Create_Dataset(CCTK_PASS_CTOC, file, datasetname, data, lmax);
-      Create_Dataset(CCTK_PASS_CTOC, file, dt_datasetname, dt_data, lmax);
-      Create_Dataset(CCTK_PASS_CTOC, file, dr_datasetname, dr_data, lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_datasetname, metric_data, lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_dt_datasetname, metric_dt_data, lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_dr_datasetname, metric_dr_data, lmax);
     }
   }
 
@@ -229,60 +229,60 @@ void Output_Decomposed_Metric_Data(
       component = "z";
     }
 
-    string datasetname = "Shift" + component + ".dat";
-    string dt_datasetname = "DtShift" + component + ".dat";
-    string dr_datasetname = "DrShift" + component + ".dat";
+    string shift_datasetname = "Shift" + component + ".dat";
+    string shift_dt_datasetname = "DtShift" + component + ".dat";
+    string shift_dr_datasetname = "DrShift" + component + ".dat";
 
-    CCTK_REAL data[2 * mode_count + 1];
-    CCTK_REAL dt_data[2 * mode_count + 1];
-    CCTK_REAL dr_data[2 * mode_count + 1];
-    data[0] = cctk_time;
-    dt_data[0] = cctk_time;
-    dr_data[0] = cctk_time;
+    vector<CCTK_REAL> shift_data(2 * mode_count + 1);
+    vector<CCTK_REAL> shift_dt_data(2 * mode_count + 1);
+    vector<CCTK_REAL> shift_dr_data(2 * mode_count + 1);
+    shift_data.at(0) = cctk_time;
+    shift_dt_data.at(0) = cctk_time;
+    shift_dr_data.at(0) = cctk_time;
 
     for (int l = 0; l <= lmax; l++) {
       for (int m = -l; m < l + 1; m++) {
         int mode_index = l_m_to_index(l, m);
-        data[2 * mode_index + 1] = re_beta[i][mode_index];
-        data[2 * mode_index + 2] = im_beta[i][mode_index];
-        dt_data[2 * mode_index + 1] = re_dt_beta[i][mode_index];
-        dt_data[2 * mode_index + 2] = im_dt_beta[i][mode_index];
-        dr_data[2 * mode_index + 1] = re_dr_beta[i][mode_index];
-        dr_data[2 * mode_index + 2] = im_dr_beta[i][mode_index];
+        shift_data.at(2 * mode_index + 1) = re_beta.at(i).at(mode_index);
+        shift_data.at(2 * mode_index + 2) = im_beta.at(i).at(mode_index);
+        shift_dt_data.at(2 * mode_index + 1) = re_dt_beta.at(i).at(mode_index);
+        shift_dt_data.at(2 * mode_index + 2) = im_dt_beta.at(i).at(mode_index);
+        shift_dr_data.at(2 * mode_index + 1) = re_dr_beta.at(i).at(mode_index);
+        shift_dr_data.at(2 * mode_index + 2) = im_dr_beta.at(i).at(mode_index);
       }
     }
 
-    Create_Dataset(CCTK_PASS_CTOC, file, datasetname, data, lmax);
-    Create_Dataset(CCTK_PASS_CTOC, file, dt_datasetname, dt_data, lmax);
-    Create_Dataset(CCTK_PASS_CTOC, file, dr_datasetname, dr_data, lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_datasetname, shift_data, lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_dt_datasetname, shift_dt_data, lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_dr_datasetname, shift_dr_data, lmax);
   }
 
   // store lapse data
-  string datasetname = "Lapse.dat";
-  string dt_datasetname = "DtLapse.dat";
-  string dr_datasetname = "DrLapse.dat";
+  string lapse_datasetname = "Lapse.dat";
+  string lapse_dt_datasetname = "DtLapse.dat";
+  string lapse_dr_datasetname = "DrLapse.dat";
 
-  CCTK_REAL data[2 * mode_count + 1];
-  CCTK_REAL dt_data[2 * mode_count + 1];
-  CCTK_REAL dr_data[2 * mode_count + 1];
-  data[0] = cctk_time;
-  dt_data[0] = cctk_time;
-  dr_data[0] = cctk_time;
+  vector<CCTK_REAL> lapse_data(2 * mode_count + 1);
+  vector<CCTK_REAL> lapse_dt_data(2 * mode_count + 1);
+  vector<CCTK_REAL> lapse_dr_data(2 * mode_count + 1);
+  lapse_data[0] = cctk_time;
+  lapse_dt_data[0] = cctk_time;
+  lapse_dr_data[0] = cctk_time;
   for (int l = 0; l <= lmax; l++) {
     for (int m = -l; m < l + 1; m++) {
       int mode_index = l_m_to_index(l, m);
-      data[2 * mode_index + 1] = re_alpha[mode_index];
-      data[2 * mode_index + 2] = im_alpha[mode_index];
-      dt_data[2 * mode_index + 1] = re_dt_alpha[mode_index];
-      dt_data[2 * mode_index + 2] = im_dt_alpha[mode_index];
-      dr_data[2 * mode_index + 1] = re_dr_alpha[mode_index];
-      dr_data[2 * mode_index + 2] = im_dr_alpha[mode_index];
+      lapse_data.at(2 * mode_index + 1) = re_alpha.at(mode_index);
+      lapse_data.at(2 * mode_index + 2) = im_alpha.at(mode_index);
+      lapse_dt_data.at(2 * mode_index + 1) = re_dt_alpha.at(mode_index);
+      lapse_dt_data.at(2 * mode_index + 2) = im_dt_alpha.at(mode_index);
+      lapse_dr_data.at(2 * mode_index + 1) = re_dr_alpha.at(mode_index);
+      lapse_dr_data.at(2 * mode_index + 2) = im_dr_alpha.at(mode_index);
     }
   }
 
-  Create_Dataset(CCTK_PASS_CTOC, file, datasetname, data, lmax);
-  Create_Dataset(CCTK_PASS_CTOC, file, dt_datasetname, dt_data, lmax);
-  Create_Dataset(CCTK_PASS_CTOC, file, dr_datasetname, dr_data, lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_datasetname, lapse_data, lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dt_datasetname, lapse_dt_data, lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dr_datasetname, lapse_dr_data, lmax);
 
   HDF5_ERROR(H5Fclose(file));
 }
