@@ -210,9 +210,9 @@ void Output_Decomposed_Metric_Data(
         }
       }
 
-      Create_Dataset(CCTK_PASS_CTOC, file, metric_datasetname, metric_data, lmax);
-      Create_Dataset(CCTK_PASS_CTOC, file, metric_dt_datasetname, metric_dt_data, lmax);
-      Create_Dataset(CCTK_PASS_CTOC, file, metric_dr_datasetname, metric_dr_data, lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_datasetname, metric_data.data(), lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_dt_datasetname, metric_dt_data.data(), lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_dr_datasetname, metric_dr_data.data(), lmax);
     }
   }
 
@@ -252,9 +252,9 @@ void Output_Decomposed_Metric_Data(
       }
     }
 
-    Create_Dataset(CCTK_PASS_CTOC, file, shift_datasetname, shift_data, lmax);
-    Create_Dataset(CCTK_PASS_CTOC, file, shift_dt_datasetname, shift_dt_data, lmax);
-    Create_Dataset(CCTK_PASS_CTOC, file, shift_dr_datasetname, shift_dr_data, lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_datasetname, shift_data.data(), lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_dt_datasetname, shift_dt_data.data(), lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_dr_datasetname, shift_dr_data.data(), lmax);
   }
 
   // store lapse data
@@ -280,9 +280,9 @@ void Output_Decomposed_Metric_Data(
     }
   }
 
-  Create_Dataset(CCTK_PASS_CTOC, file, lapse_datasetname, lapse_data, lmax);
-  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dt_datasetname, lapse_dt_data, lmax);
-  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dr_datasetname, lapse_dr_data, lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_datasetname, lapse_data.data(), lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dt_datasetname, lapse_dt_data.data(), lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dr_datasetname, lapse_dr_data.data(), lmax);
 
   HDF5_ERROR(H5Fclose(file));
 }
