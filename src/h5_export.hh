@@ -8,7 +8,6 @@
 
 #include "utils.hh"
 
-#include <sys/stat.h>
 #include <string.h>
 #include <vector>
 #include <map>
@@ -17,10 +16,9 @@
 #define H5_USE_16_API
 #include <hdf5.h>
 
-using std::vector, std::string, std::ostringstream, std::map, std::ios,
-    std::setprecision;
-
 namespace CCE_export {
+
+using std::vector;
 
 void Create_Dataset(string datasetname, CCTK_REAL *data, int mode_count);
 

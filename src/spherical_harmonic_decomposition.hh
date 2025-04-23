@@ -1,5 +1,5 @@
-#ifndef SPHERICAL_HARMONIC_DECOMPOSITION_HH
-#define SPHERICAL_HARMONIC_DECOMPOSITION_HH
+#ifndef CCE_EXPORT_SPHERICAL_HARMONIC_DECOMPOSITION_HH
+#define CCE_EXPORT_SPHERICAL_HARMONIC_DECOMPOSITION_HH
 
 #include "cctk.h"
 #include "utils.hh"
@@ -8,9 +8,9 @@
 #include <memory>
 #include <cmath>
 
-using std::vector, std::sin, std::cos, std::pow;
-
 namespace CCE_export {
+
+using std::vector;
 
 CCTK_REAL Simpson2DIntegral(CCTK_REAL const *f, int nx, int ny, CCTK_REAL hx,
                             CCTK_REAL hy);

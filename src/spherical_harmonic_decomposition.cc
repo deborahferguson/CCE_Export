@@ -2,6 +2,8 @@
 
 namespace CCE_export {
 
+using std::sin, std::cos, std::pow;
+
 // Copied from Multipole
 #define idx(xx, yy)                                                            \
   (assert((xx) <= nx), assert((xx) >= 0), assert((yy) <= ny),                  \

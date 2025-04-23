@@ -10,9 +10,9 @@
 #include <string>
 #include <vector>
 
-using std::vector, std::string;
-
 namespace CCE_export {
+
+using std::vector, std::string;
 
 extern "C" void CCE_Export(CCTK_ARGUMENTS);
 
