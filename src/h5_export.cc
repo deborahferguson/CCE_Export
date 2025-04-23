@@ -2,7 +2,8 @@
 
 namespace CCE_export {
 
-using std::string, std::ostringstream, std::map, std::ios, std::setprecision;
+using std::string, std::ostringstream, std::map, std::ios, std::setprecision,
+    std::filesystem;
 
 #define HDF5_ERROR(fn_call)                                                    \
   do {                                                                         \
@@ -11,7 +12,7 @@ using std::string, std::ostringstream, std::map, std::ios, std::setprecision;
     if (_error_code < 0) {                                                     \
       CCTK_VWarn(0, __LINE__, __FILE__, CCTK_THORNSTRING,                      \
                  "HDF5 call '%s' returned error code %d", #fn_call,            \
-                 static_cast<int>(_error_code));                                            \
+                 static_cast<int>(_error_code));                               \
     }                                                                          \
   } while (0)
 
@@ -44,7 +45,8 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
     dataset = H5Dopen(file, datasetname.c_str());
   } else {
     hsize_t dims[2] = {0, static_cast<hsize_t>(2 * mode_count + 1)};
-    hsize_t maxdims[2] = {H5S_UNLIMITED, static_cast<hsize_t>(2 * mode_count + 1)};
+    hsize_t maxdims[2] = {H5S_UNLIMITED,
+                          static_cast<hsize_t>(2 * mode_count + 1)};
     hid_t dataspace = H5Screate_simple(2, dims, maxdims);
 
     hid_t cparms = -1;
@@ -71,7 +73,7 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
     hid_t attr = H5Acreate(dataset, "Legend", str_type, space, H5P_DEFAULT);
 
     // Write array of strings
-    vector<const char*> legend(2*mode_count + 1);
+    vector<const char *> legend(2 * mode_count + 1);
     legend.at(0) = "time";
     for (int l = 0; l < lmax + 1; l++) {
       for (int m = -l; m < l + 1; m++) {
@@ -86,7 +88,7 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
     }
     H5Awrite(attr, str_type, legend.data());
   }
-  for(size_t i = 1; i < legend.size(); ++i) {  
+  for (size_t i = 1; i < legend.size(); ++i) {
     free(legend[i]);
   }
 
@@ -151,11 +153,11 @@ void Output_Decomposed_Metric_Data(
   ostringstream basename;
   basename << "CCE_Export_R" << setiosflags(ios::fixed) << setprecision(2)
            << rad << ".h5";
-  string output_name = my_out_dir + string("/") + basename.str();
+  string output_name = (filesystem::path(my_out_dir) / basename.str()).string();
 
   hid_t file;
 
-  if (!std::filesystem::exists(output_name) ||
+  if (!filesystem::exists(output_name) ||
       (!checked[output_name] && IO_TruncateOutputFiles(cctkGH))) {
     file =
         H5Fcreate(output_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -203,16 +205,23 @@ void Output_Decomposed_Metric_Data(
           int mode_index = l_m_to_index(l, m);
           metric_data.at(2 * mode_index + 1) = re_g.at(i).at(j).at(mode_index);
           metric_data.at(2 * mode_index + 2) = im_g.at(i).at(j).at(mode_index);
-          metric_dt_data.at(2 * mode_index + 1) = re_dt_g.at(i).at(j).at(mode_index);
-          metric_dt_data.at(2 * mode_index + 2) = im_dt_g.at(i).at(j).at(mode_index);
-          metric_dr_data.at(2 * mode_index + 1) = re_dr_g.at(i).at(j).at(mode_index);
-          metric_dr_data.at(2 * mode_index + 2) = im_dr_g.at(i).at(j).at(mode_index);
+          metric_dt_data.at(2 * mode_index + 1) =
+              re_dt_g.at(i).at(j).at(mode_index);
+          metric_dt_data.at(2 * mode_index + 2) =
+              im_dt_g.at(i).at(j).at(mode_index);
+          metric_dr_data.at(2 * mode_index + 1) =
+              re_dr_g.at(i).at(j).at(mode_index);
+          metric_dr_data.at(2 * mode_index + 2) =
+              im_dr_g.at(i).at(j).at(mode_index);
         }
       }
 
-      Create_Dataset(CCTK_PASS_CTOC, file, metric_datasetname, metric_data.data(), lmax);
-      Create_Dataset(CCTK_PASS_CTOC, file, metric_dt_datasetname, metric_dt_data.data(), lmax);
-      Create_Dataset(CCTK_PASS_CTOC, file, metric_dr_datasetname, metric_dr_data.data(), lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_datasetname,
+                     metric_data.data(), lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_dt_datasetname,
+                     metric_dt_data.data(), lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_dr_datasetname,
+                     metric_dr_data.data(), lmax);
     }
   }
 
@@ -252,9 +261,12 @@ void Output_Decomposed_Metric_Data(
       }
     }
 
-    Create_Dataset(CCTK_PASS_CTOC, file, shift_datasetname, shift_data.data(), lmax);
-    Create_Dataset(CCTK_PASS_CTOC, file, shift_dt_datasetname, shift_dt_data.data(), lmax);
-    Create_Dataset(CCTK_PASS_CTOC, file, shift_dr_datasetname, shift_dr_data.data(), lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_datasetname, shift_data.data(),
+                   lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_dt_datasetname,
+                   shift_dt_data.data(), lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_dr_datasetname,
+                   shift_dr_data.data(), lmax);
   }
 
   // store lapse data
@@ -280,9 +292,12 @@ void Output_Decomposed_Metric_Data(
     }
   }
 
-  Create_Dataset(CCTK_PASS_CTOC, file, lapse_datasetname, lapse_data.data(), lmax);
-  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dt_datasetname, lapse_dt_data.data(), lmax);
-  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dr_datasetname, lapse_dr_data.data(), lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_datasetname, lapse_data.data(),
+                 lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dt_datasetname,
+                 lapse_dt_data.data(), lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dr_datasetname,
+                 lapse_dr_data.data(), lmax);
 
   HDF5_ERROR(H5Fclose(file));
 }
