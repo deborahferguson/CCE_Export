@@ -71,20 +71,23 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
     hid_t attr = H5Acreate(dataset, "Legend", str_type, space, H5P_DEFAULT);
 
     // Write array of strings
-    char *legend[2 * mode_count + 1];
-    legend[0] = "time";
+    vector<const char*> legend(2*mode_count + 1);
+    legend.at(0) = "time";
     for (int l = 0; l < lmax + 1; l++) {
       for (int m = -l; m < l + 1; m++) {
         int mode_index = l_m_to_index(l, m);
         ostringstream re_label;
         re_label << "Re(" << l << "," << m << ")";
-        legend[2 * mode_index + 1] = strdup(re_label.str().c_str());
+        legend.at(2 * mode_index + 1) = strdup(re_label.str().c_str());
         ostringstream im_label;
         im_label << "Im(" << l << "," << m << ")";
-        legend[2 * mode_index + 2] = strdup(im_label.str().c_str());
+        legend.at(2 * mode_index + 2) = strdup(im_label.str().c_str());
       }
     }
-    H5Awrite(attr, str_type, legend);
+    H5Awrite(attr, str_type, legend.data());
+  }
+  for(size_t i = 1; i < legend.size(); ++i) {  
+    free(legend[i]);
   }
 
   hid_t filespace = H5Dget_space(dataset);
