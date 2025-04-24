@@ -1,3 +1,6 @@
+// File written by Phind-70B
+// Modified by Deborah Ferguson
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
