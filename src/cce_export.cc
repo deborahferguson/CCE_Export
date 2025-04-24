@@ -5,13 +5,11 @@
 #include <vector>
 #include <sys/stat.h>
 #include <iomanip>
-#include <string.h>
 #include <map>
 
-using std::vector, std::string, std::ostringstream, std::map, std::ios,
-    std::setprecision;
-
 namespace CCE_export {
+
+using std::vector, std::string, std::ostringstream, std::ios;
 
 void CCE_Export(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTS;

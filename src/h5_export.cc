@@ -1,6 +1,11 @@
 #include "h5_export.hh"
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace CCE_export {
+
+using std::string, std::ostringstream, std::map, std::ios, std::setprecision;
 
 #define HDF5_ERROR(fn_call)                                                    \
   do {                                                                         \
@@ -9,14 +14,9 @@ namespace CCE_export {
     if (_error_code < 0) {                                                     \
       CCTK_VWarn(0, __LINE__, __FILE__, CCTK_THORNSTRING,                      \
                  "HDF5 call '%s' returned error code %d", #fn_call,            \
-                 (int)_error_code);                                            \
+                 static_cast<int>(_error_code));                               \
     }                                                                          \
   } while (0)
-
-static bool file_exists(const string &name) {
-  struct stat sts;
-  return !(stat(name.c_str(), &sts) == -1 && errno == ENOENT);
-}
 
 static bool dataset_exists(hid_t file, const string &dataset_name) {
   // To test whether a dataset exists, the recommended way in API 1.6
@@ -26,16 +26,12 @@ static bool dataset_exists(hid_t file, const string &dataset_name) {
   // H5Gget_objinfo is deprecated, and H5Lexists does the job.  See
   // http://www.mail-archive.com/hdf-forum@hdfgroup.org/msg00125.html
 
-#if 1
   bool exists;
   H5E_BEGIN_TRY {
     exists = H5Gget_objinfo(file, dataset_name.c_str(), 1, NULL) >= 0;
   }
   H5E_END_TRY;
   return exists;
-#else
-  return H5Lexists(file, dataset_name.c_str(), H5P_DEFAULT);
-#endif
 }
 
 void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
@@ -50,13 +46,14 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
   if (dataset_exists(file, datasetname)) {
     dataset = H5Dopen(file, datasetname.c_str());
   } else {
-    hsize_t dims[2] = {0, (hsize_t)(2 * mode_count + 1)};
-    hsize_t maxdims[2] = {H5S_UNLIMITED, (hsize_t)(2 * mode_count + 1)};
+    hsize_t dims[2] = {0, static_cast<hsize_t>(2 * mode_count + 1)};
+    hsize_t maxdims[2] = {H5S_UNLIMITED,
+                          static_cast<hsize_t>(2 * mode_count + 1)};
     hid_t dataspace = H5Screate_simple(2, dims, maxdims);
 
     hid_t cparms = -1;
-    hsize_t chunk_dims[2] = {hsize_t(hdf5_chunk_size),
-                             (hsize_t)(2 * mode_count + 1)};
+    hsize_t chunk_dims[2] = {static_cast<hsize_t>(hdf5_chunk_size),
+                             static_cast<hsize_t>(2 * mode_count + 1)};
     cparms = H5Pcreate(H5P_DATASET_CREATE);
     HDF5_ERROR(H5Pset_chunk(cparms, 2, chunk_dims));
 
@@ -71,32 +68,30 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
     H5Tset_size(str_type, H5T_VARIABLE);
 
     // Create dataspace for array of strings
-    hsize_t legend_dims[] = {(hsize_t)(2 * mode_count + 1)};
+    hsize_t legend_dims[] = {static_cast<hsize_t>(2 * mode_count + 1)};
     hid_t space = H5Screate_simple(1, legend_dims, NULL);
 
     // Create attribute
     hid_t attr = H5Acreate(dataset, "Legend", str_type, space, H5P_DEFAULT);
 
     // Write array of strings
-    char *legend[2 * mode_count + 1];
-    legend[0] = "time";
+    vector<const char *> legend(2 * mode_count + 1);
+    legend.at(0) = "time";
     for (int l = 0; l < lmax + 1; l++) {
       for (int m = -l; m < l + 1; m++) {
         int mode_index = l_m_to_index(l, m);
         ostringstream re_label;
         re_label << "Re(" << l << "," << m << ")";
-        legend[2 * mode_index + 1] = strdup(re_label.str().c_str());
+        legend.at(2 * mode_index + 1) = strdup(re_label.str().c_str());
         ostringstream im_label;
         im_label << "Im(" << l << "," << m << ")";
-        legend[2 * mode_index + 2] = strdup(im_label.str().c_str());
+        legend.at(2 * mode_index + 2) = strdup(im_label.str().c_str());
       }
     }
-    H5Awrite(attr, str_type, legend);
+    H5Awrite(attr, str_type, legend.data());
   }
 
   hid_t filespace = H5Dget_space(dataset);
-
-  printf("%ld\n", (long)filespace);
 
   hsize_t filedims[2];
   hsize_t maxdims[2];
@@ -149,31 +144,23 @@ void Output_Decomposed_Metric_Data(
   const char *my_out_dir = strcmp(out_dir, "") ? out_dir : io_out_dir;
   if (CCTK_CreateDirectory(0755, my_out_dir) < 0)
     CCTK_VWarn(CCTK_WARN_ABORT, __LINE__, __FILE__, CCTK_THORNSTRING,
-               "Multipole output directory %s could not be created",
+               "CCE_Export output directory %s could not be created",
                my_out_dir);
 
   static map<string, bool> checked;
-  // static bool checked; // Has the given file been checked
-  // for truncation? bool
-  // defaults to false
 
   ostringstream basename;
   basename << "CCE_Export_R" << setiosflags(ios::fixed) << setprecision(2)
            << rad << ".h5";
-  string output_name = my_out_dir + string("/") + basename.str();
-
-  printf(output_name.c_str());
-  printf("\n");
+  string output_name = (fs::path(my_out_dir) / basename.str()).string();
 
   hid_t file;
 
-  if (!file_exists(output_name) ||
+  if (!fs::exists(output_name) ||
       (!checked[output_name] && IO_TruncateOutputFiles(cctkGH))) {
-    printf("File does not exist\n");
     file =
         H5Fcreate(output_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
   } else {
-    printf("File exists\n");
     file = H5Fopen(output_name.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
   }
 
@@ -202,31 +189,38 @@ void Output_Decomposed_Metric_Data(
         components = "zz";
       }
 
-      string datasetname = "g" + components + ".dat";
-      string dt_datasetname = "Dtg" + components + ".dat";
-      string dr_datasetname = "Drg" + components + ".dat";
+      string metric_datasetname = "g" + components + ".dat";
+      string metric_dt_datasetname = "Dtg" + components + ".dat";
+      string metric_dr_datasetname = "Drg" + components + ".dat";
 
-      CCTK_REAL data[2 * mode_count + 1];
-      CCTK_REAL dt_data[2 * mode_count + 1];
-      CCTK_REAL dr_data[2 * mode_count + 1];
-      data[0] = cctk_time;
-      dt_data[0] = cctk_time;
-      dr_data[0] = cctk_time;
+      vector<CCTK_REAL> metric_data(2 * mode_count + 1);
+      vector<CCTK_REAL> metric_dt_data(2 * mode_count + 1);
+      vector<CCTK_REAL> metric_dr_data(2 * mode_count + 1);
+      metric_data.at(0) = cctk_time;
+      metric_dt_data.at(0) = cctk_time;
+      metric_dr_data.at(0) = cctk_time;
       for (int l = 0; l <= lmax; l++) {
         for (int m = -l; m < l + 1; m++) {
           int mode_index = l_m_to_index(l, m);
-          data[2 * mode_index + 1] = re_g[i][j][mode_index];
-          data[2 * mode_index + 2] = im_g[i][j][mode_index];
-          dt_data[2 * mode_index + 1] = re_dt_g[i][j][mode_index];
-          dt_data[2 * mode_index + 2] = im_dt_g[i][j][mode_index];
-          dr_data[2 * mode_index + 1] = re_dr_g[i][j][mode_index];
-          dr_data[2 * mode_index + 2] = im_dr_g[i][j][mode_index];
+          metric_data.at(2 * mode_index + 1) = re_g.at(i).at(j).at(mode_index);
+          metric_data.at(2 * mode_index + 2) = im_g.at(i).at(j).at(mode_index);
+          metric_dt_data.at(2 * mode_index + 1) =
+              re_dt_g.at(i).at(j).at(mode_index);
+          metric_dt_data.at(2 * mode_index + 2) =
+              im_dt_g.at(i).at(j).at(mode_index);
+          metric_dr_data.at(2 * mode_index + 1) =
+              re_dr_g.at(i).at(j).at(mode_index);
+          metric_dr_data.at(2 * mode_index + 2) =
+              im_dr_g.at(i).at(j).at(mode_index);
         }
       }
 
-      Create_Dataset(CCTK_PASS_CTOC, file, datasetname, data, lmax);
-      Create_Dataset(CCTK_PASS_CTOC, file, dt_datasetname, dt_data, lmax);
-      Create_Dataset(CCTK_PASS_CTOC, file, dr_datasetname, dr_data, lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_datasetname,
+                     metric_data.data(), lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_dt_datasetname,
+                     metric_dt_data.data(), lmax);
+      Create_Dataset(CCTK_PASS_CTOC, file, metric_dr_datasetname,
+                     metric_dr_data.data(), lmax);
     }
   }
 
@@ -243,60 +237,66 @@ void Output_Decomposed_Metric_Data(
       component = "z";
     }
 
-    string datasetname = "Shift" + component + ".dat";
-    string dt_datasetname = "DtShift" + component + ".dat";
-    string dr_datasetname = "DrShift" + component + ".dat";
+    string shift_datasetname = "Shift" + component + ".dat";
+    string shift_dt_datasetname = "DtShift" + component + ".dat";
+    string shift_dr_datasetname = "DrShift" + component + ".dat";
 
-    CCTK_REAL data[2 * mode_count + 1];
-    CCTK_REAL dt_data[2 * mode_count + 1];
-    CCTK_REAL dr_data[2 * mode_count + 1];
-    data[0] = cctk_time;
-    dt_data[0] = cctk_time;
-    dr_data[0] = cctk_time;
-    // for(int mode_index = 0; mode_index<mode_count; mode_index++){
+    vector<CCTK_REAL> shift_data(2 * mode_count + 1);
+    vector<CCTK_REAL> shift_dt_data(2 * mode_count + 1);
+    vector<CCTK_REAL> shift_dr_data(2 * mode_count + 1);
+    shift_data.at(0) = cctk_time;
+    shift_dt_data.at(0) = cctk_time;
+    shift_dr_data.at(0) = cctk_time;
+
     for (int l = 0; l <= lmax; l++) {
       for (int m = -l; m < l + 1; m++) {
         int mode_index = l_m_to_index(l, m);
-        data[2 * mode_index + 1] = re_beta[i][mode_index];
-        data[2 * mode_index + 2] = im_beta[i][mode_index];
-        dt_data[2 * mode_index + 1] = re_dt_beta[i][mode_index];
-        dt_data[2 * mode_index + 2] = im_dt_beta[i][mode_index];
-        dr_data[2 * mode_index + 1] = re_dr_beta[i][mode_index];
-        dr_data[2 * mode_index + 2] = im_dr_beta[i][mode_index];
+        shift_data.at(2 * mode_index + 1) = re_beta.at(i).at(mode_index);
+        shift_data.at(2 * mode_index + 2) = im_beta.at(i).at(mode_index);
+        shift_dt_data.at(2 * mode_index + 1) = re_dt_beta.at(i).at(mode_index);
+        shift_dt_data.at(2 * mode_index + 2) = im_dt_beta.at(i).at(mode_index);
+        shift_dr_data.at(2 * mode_index + 1) = re_dr_beta.at(i).at(mode_index);
+        shift_dr_data.at(2 * mode_index + 2) = im_dr_beta.at(i).at(mode_index);
       }
     }
 
-    Create_Dataset(CCTK_PASS_CTOC, file, datasetname, data, lmax);
-    Create_Dataset(CCTK_PASS_CTOC, file, dt_datasetname, dt_data, lmax);
-    Create_Dataset(CCTK_PASS_CTOC, file, dr_datasetname, dr_data, lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_datasetname, shift_data.data(),
+                   lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_dt_datasetname,
+                   shift_dt_data.data(), lmax);
+    Create_Dataset(CCTK_PASS_CTOC, file, shift_dr_datasetname,
+                   shift_dr_data.data(), lmax);
   }
 
   // store lapse data
-  string datasetname = "Lapse.dat";
-  string dt_datasetname = "DtLapse.dat";
-  string dr_datasetname = "DrLapse.dat";
+  string lapse_datasetname = "Lapse.dat";
+  string lapse_dt_datasetname = "DtLapse.dat";
+  string lapse_dr_datasetname = "DrLapse.dat";
 
-  CCTK_REAL data[2 * mode_count + 1];
-  CCTK_REAL dt_data[2 * mode_count + 1];
-  CCTK_REAL dr_data[2 * mode_count + 1];
-  data[0] = cctk_time;
-  dt_data[0] = cctk_time;
-  dr_data[0] = cctk_time;
+  vector<CCTK_REAL> lapse_data(2 * mode_count + 1);
+  vector<CCTK_REAL> lapse_dt_data(2 * mode_count + 1);
+  vector<CCTK_REAL> lapse_dr_data(2 * mode_count + 1);
+  lapse_data[0] = cctk_time;
+  lapse_dt_data[0] = cctk_time;
+  lapse_dr_data[0] = cctk_time;
   for (int l = 0; l <= lmax; l++) {
     for (int m = -l; m < l + 1; m++) {
       int mode_index = l_m_to_index(l, m);
-      data[2 * mode_index + 1] = re_alpha[mode_index];
-      data[2 * mode_index + 2] = im_alpha[mode_index];
-      dt_data[2 * mode_index + 1] = re_dt_alpha[mode_index];
-      dt_data[2 * mode_index + 2] = im_dt_alpha[mode_index];
-      dr_data[2 * mode_index + 1] = re_dr_alpha[mode_index];
-      dr_data[2 * mode_index + 2] = im_dr_alpha[mode_index];
+      lapse_data.at(2 * mode_index + 1) = re_alpha.at(mode_index);
+      lapse_data.at(2 * mode_index + 2) = im_alpha.at(mode_index);
+      lapse_dt_data.at(2 * mode_index + 1) = re_dt_alpha.at(mode_index);
+      lapse_dt_data.at(2 * mode_index + 2) = im_dt_alpha.at(mode_index);
+      lapse_dr_data.at(2 * mode_index + 1) = re_dr_alpha.at(mode_index);
+      lapse_dr_data.at(2 * mode_index + 2) = im_dr_alpha.at(mode_index);
     }
   }
 
-  Create_Dataset(CCTK_PASS_CTOC, file, datasetname, data, lmax);
-  Create_Dataset(CCTK_PASS_CTOC, file, dt_datasetname, dt_data, lmax);
-  Create_Dataset(CCTK_PASS_CTOC, file, dr_datasetname, dr_data, lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_datasetname, lapse_data.data(),
+                 lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dt_datasetname,
+                 lapse_dt_data.data(), lmax);
+  Create_Dataset(CCTK_PASS_CTOC, file, lapse_dr_datasetname,
+                 lapse_dr_data.data(), lmax);
 
   HDF5_ERROR(H5Fclose(file));
 }

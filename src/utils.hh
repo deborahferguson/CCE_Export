@@ -1,5 +1,5 @@
-#ifndef UTILS_HH
-#define UTILS_HH
+#ifndef CCE_EXPORT_UTILS_HH
+#define CCE_EXPORT_UTILS_HH
 
 namespace CCE_export {
 
