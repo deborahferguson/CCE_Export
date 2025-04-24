@@ -1,27 +1,11 @@
-Cactus::cctk_run_title = "QC-0"
-
-Cactus::cctk_full_warnings         = yes
-Cactus::highlight_warning_messages = no
-
 Cactus::terminate       = "iteration"
 Cactus::cctk_itlast = 3
 
 ActiveThorns = "AEILocalInterp"
-
 ActiveThorns = "HDF5"
-
 ActiveThorns = "CCE_Export"
-
 ActiveThorns = "Carpet" 
-
 ActiveThorns = "CarpetInterp CarpetReduce"
-
-Carpet::verbose           = no
-Carpet::veryverbose       = no
-Carpet::schedule_barriers = no
-Carpet::storage_verbose   = no
-#Carpet::timers_verbose    = no
-CarpetLib::output_bboxes  = no
 
 Carpet::domain_from_coordbase = yes
 Carpet::max_refinement_levels = 10
@@ -39,10 +23,6 @@ Carpet::init_fill_timelevels = yes
 Carpet::poison_new_timelevels = yes
 CarpetLib::poison_new_memory  = yes
 
-Carpet::output_timers_every      = 0
-CarpetLib::print_timestats_every = 0
-CarpetLib::print_memstats_every  = 0
-
 ActiveThorns = "Boundary CartGrid3D CoordBase"   
 
 ActiveThorns = "ReflectionSymmetry RotatingSymmetry180 SymBase"
@@ -50,14 +30,14 @@ ActiveThorns = "ReflectionSymmetry RotatingSymmetry180 SymBase"
 CoordBase::domainsize = "minmax"
 
 CoordBase::xmin =    0.00
-CoordBase::ymin = -60.00
+CoordBase::ymin = -30.00
 CoordBase::zmin =    0.00
-CoordBase::xmax = +60.00
-CoordBase::ymax = +60.00
-CoordBase::zmax = +60.00
-CoordBase::dx   =    2.00
-CoordBase::dy   =    2.00
-CoordBase::dz   =    2.00
+CoordBase::xmax = +30.00
+CoordBase::ymax = +30.00
+CoordBase::zmax = +30.00
+CoordBase::dx   =    1.00
+CoordBase::dy   =    1.00
+CoordBase::dz   =    1.00
 
 CoordBase::boundary_size_x_lower     = 3
 CoordBase::boundary_size_y_lower     = 3
@@ -73,81 +53,6 @@ CartGrid3D::type = "coordbase"
 
 ReflectionSymmetry::reflection_z   = yes
 ReflectionSymmetry::avoid_origin_z = no
-
-
-
-ActiveThorns = "SphericalSurface"
-
-SphericalSurface::nsurfaces = 3
-SphericalSurface::maxntheta = 39
-SphericalSurface::maxnphi   = 76
-
-SphericalSurface::ntheta      [0] = 39
-SphericalSurface::nphi        [0] = 76
-SphericalSurface::nghoststheta[0] = 2
-SphericalSurface::nghostsphi  [0] = 2
-
-SphericalSurface::ntheta      [1] = 39
-SphericalSurface::nphi        [1] = 76
-SphericalSurface::nghoststheta[1] = 2
-SphericalSurface::nghostsphi  [1] = 2
-
-SphericalSurface::ntheta      [2] = 39
-SphericalSurface::nphi        [2] = 76
-SphericalSurface::nghoststheta[2] = 2
-SphericalSurface::nghostsphi  [2] = 2
-
-
-ActiveThorns = "CarpetMask"
-
-CarpetMask::verbose = no
-
-CarpetMask::excluded_surface       [0] = 0
-CarpetMask::excluded_surface_factor[0] = 1.0
-
-CarpetMask::excluded_surface       [1] = 1
-CarpetMask::excluded_surface_factor[1] = 1.0
-
-CarpetMask::excluded_surface       [2] = 2
-CarpetMask::excluded_surface_factor[2] = 1.0
-
-
-
-ActiveThorns = "CarpetRegrid2 CarpetTracker"
-
-CarpetTracker::surface[0] = 0
-CarpetTracker::surface[1] = 1
-CarpetTracker::surface[2] = 2
-
-CarpetRegrid2::regrid_every            = 128
-CarpetRegrid2::freeze_unaligned_levels = yes
-CarpetRegrid2::symmetry_rotating180    = yes
-CarpetRegrid2::verbose                 = no
-
-CarpetRegrid2::num_centres = 3
-
-CarpetRegrid2::num_levels_1         =  4
-CarpetRegrid2::position_x_1         = +1.168642873
-CarpetRegrid2::radius_1[ 1]         =  16.0
-CarpetRegrid2::radius_1[ 2]         =   8.0
-CarpetRegrid2::radius_1[ 3]         =   4.0
-CarpetRegrid2::movement_threshold_1 =   0.16
-
-CarpetRegrid2::num_levels_2         =  4
-CarpetRegrid2::position_x_2         = -1.168642873
-CarpetRegrid2::radius_2[ 1]         =  16.0
-CarpetRegrid2::radius_2[ 2]         =   8.0
-CarpetRegrid2::radius_2[ 3]         =   4.0
-CarpetRegrid2::movement_threshold_2 =   0.16
-
-CarpetRegrid2::num_levels_3         =  4
-CarpetRegrid2::active_3             = no
-CarpetRegrid2::radius_3[ 1]         =  16.0
-CarpetRegrid2::radius_3[ 2]         =   8.0
-CarpetRegrid2::radius_3[ 3]         =   4.0
-CarpetRegrid2::movement_threshold_3 =   0.16
-
-
 
 ActiveThorns = "MoL Time"
 
@@ -177,7 +82,6 @@ ADMBase::initial_shift   = "zero"
 ADMBase::initial_dtlapse = "zero"
 ADMBase::initial_dtshift = "zero"
 
-# needed for AHFinderDirect
 ADMBase::metric_timelevels = 3
 
 TwoPunctures::par_b          =  1.168642873
@@ -185,8 +89,6 @@ TwoPunctures::par_m_plus     =  0.453
 TwoPunctures::par_m_minus    =  0.453
 TwoPunctures::par_P_plus [1] = +0.3331917498
 TwoPunctures::par_P_minus[1] = -0.3331917498
-
-#TODO# TwoPunctures::grid_setup_method = "evaluation"
 
 TwoPunctures::TP_epsilon = 1.0e-2
 TwoPunctures::TP_Tiny    = 1.0e-2
@@ -227,33 +129,12 @@ ML_BSSN::ML_shift_bound      = "none"
 ML_BSSN::ML_dtshift_bound    = "none"
 
 
-
-ActiveThorns = "Dissipation"
-
-Dissipation::order = 5
-Dissipation::vars  = "
-        ML_BSSN::ML_log_confac
-        ML_BSSN::ML_metric
-        ML_BSSN::ML_trace_curv
-        ML_BSSN::ML_curv
-        ML_BSSN::ML_Gamma
-        ML_BSSN::ML_lapse
-        ML_BSSN::ML_shift
-        ML_BSSN::ML_dtlapse
-        ML_BSSN::ML_dtshift
-"
-
-
-
-# ActiveThorns = "ML_ADMConstraints"
-
-
 #################################################
 # CCE_Export
 #################################################
 
 CCE_Export::nradii       = 1
-CCE_Export::radius[0]    = 40.00
+CCE_Export::radius[0]    = 10.00
 
 CCE_Export::out_every    = 1
 
