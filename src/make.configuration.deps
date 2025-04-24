@@ -1,0 +1,20 @@
+# Main make.configuration.deps file for thorn CCE_Export
+
+CCE_EXPORT_BUILD_DIR = $(BUILD_DIR)/CCE_Export
+CCE_EXPORT_SRC_DIR   = $(PACKAGE_DIR)/EinsteinAnalysis/CCE_Export/src/util
+
+CCE_EXPORT_CFLAGS  = $(CPPFLAGS) -DCCODE -I$(CONFIG) -I$(BINDINGS_DIR)/include -I$(BINDINGS_DIR)/include/HDF5 -I$(FLESH_DIR)/include $(HDF5_INC_DIRS:%=-I%) $(MPI_INC_DIRS:%=-I%) $(CFLAGS)
+CCE_EXPORT_LDFLAGS = $(DEBUG_LD) $(LDFLAGS) $(CXXFLAGS) $(EXTRAFLAGS) $(GENERAL_LIBRARIES)
+
+
+# Compile
+$(CCE_EXPORT_BUILD_DIR)/%.o: $(CCE_EXPORT_SRC_DIR)/%.c
+	@echo "Compiling $<"
+	-$(MKDIR) $(MKDIRFLAGS) $(CCE_EXPORT_BUILD_DIR) 2> /dev/null
+	$(CC) $< $(CCE_EXPORT_CFLAGS) -c -o $@
+
+# Link
+$(UTIL_DIR)/%: $(CCE_EXPORT_BUILD_DIR)/%.o
+	@echo "Creating $* in $(UTIL_DIR) from $<"
+	-$(MKDIR) $(MKDIRFLAGS) $(UTIL_DIR) 2> /dev/null
+	$(LD) $< $(CCE_EXPORT_LDFLAGS) -o $@
