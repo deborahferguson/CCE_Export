@@ -78,7 +78,7 @@ void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
 
   const CCTK_INT output_array_types[1] = {CCTK_VARIABLE_REAL};
 
-  void *output_arrays[1] = {static_cast<const void*>(sphere_values.data())};
+  void *output_arrays[1] = {static_cast<void*>(sphere_values.data())};
 
   const int operator_handle =
       CCTK_InterpHandle("Hermite polynomial interpolation");

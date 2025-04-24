@@ -1,9 +1,11 @@
 #include "h5_export.hh"
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace CCE_export {
 
-using std::string, std::ostringstream, std::map, std::ios, std::setprecision,
-    std::filesystem;
+using std::string, std::ostringstream, std::map, std::ios, std::setprecision;
 
 #define HDF5_ERROR(fn_call)                                                    \
   do {                                                                         \
@@ -88,9 +90,6 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
     }
     H5Awrite(attr, str_type, legend.data());
   }
-  for (size_t i = 1; i < legend.size(); ++i) {
-    free(legend[i]);
-  }
 
   hid_t filespace = H5Dget_space(dataset);
 
@@ -153,11 +152,11 @@ void Output_Decomposed_Metric_Data(
   ostringstream basename;
   basename << "CCE_Export_R" << setiosflags(ios::fixed) << setprecision(2)
            << rad << ".h5";
-  string output_name = (filesystem::path(my_out_dir) / basename.str()).string();
+  string output_name = (fs::path(my_out_dir) / basename.str()).string();
 
   hid_t file;
 
-  if (!filesystem::exists(output_name) ||
+  if (!fs::exists(output_name) ||
       (!checked[output_name] && IO_TruncateOutputFiles(cctkGH))) {
     file =
         H5Fcreate(output_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
