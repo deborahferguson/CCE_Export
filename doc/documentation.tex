@@ -1,73 +1,3 @@
-% *======================================================================*
-%  Cactus Thorn template for ThornGuide documentation
-%  Author: Ian Kelley
-%  Date: Sun Jun 02, 2002
-%  $Header$
-%
-%  Thorn documentation in the latex file doc/documentation.tex
-%  will be included in ThornGuides built with the Cactus make system.
-%  The scripts employed by the make system automatically include
-%  pages about variables, parameters and scheduling parsed from the
-%  relevant thorn CCL files.
-%
-%  This template contains guidelines which help to assure that your
-%  documentation will be correctly added to ThornGuides. More
-%  information is available in the Cactus UsersGuide.
-%
-%  Guidelines:
-%   - Do not change anything before the line
-%       % START CACTUS THORNGUIDE",
-%     except for filling in the title, author, date, etc. fields.
-%        - Each of these fields should only be on ONE line.
-%        - Author names should be separated with a \\ or a comma.
-%   - You can define your own macros, but they must appear after
-%     the START CACTUS THORNGUIDE line, and must not redefine standard
-%     latex commands.
-%   - To avoid name clashes with other thorns, 'labels', 'citations',
-%     'references', and 'image' names should conform to the following
-%     convention:
-%       ARRANGEMENT_THORN_LABEL
-%     For example, an image wave.eps in the arrangement CactusWave and
-%     thorn WaveToyC should be renamed to CactusWave_WaveToyC_wave.eps
-%   - Graphics should only be included using the graphicx package.
-%     More specifically, with the "\includegraphics" command.  Do
-%     not specify any graphic file extensions in your .tex file. This
-%     will allow us to create a PDF version of the ThornGuide
-%     via pdflatex.
-%   - References should be included with the latex "\bibitem" command.
-%   - Use \begin{abstract}...\end{abstract} instead of \abstract{...}
-%   - Do not use \appendix, instead include any appendices you need as
-%     standard sections.
-%   - For the benefit of our Perl scripts, and for future extensions,
-%     please use simple latex.
-%
-% *======================================================================*
-%
-% Example of including a graphic image:
-%    \begin{figure}[ht]
-% 	\begin{center}
-%    	   \includegraphics[width=6cm]{MyArrangement_MyThorn_MyFigure}
-% 	\end{center}
-% 	\caption{Illustration of this and that}
-% 	\label{MyArrangement_MyThorn_MyLabel}
-%    \end{figure}
-%
-% Example of using a label:
-%   \label{MyArrangement_MyThorn_MyLabel}
-%
-% Example of a citation:
-%    \cite{MyArrangement_MyThorn_Author99}
-%
-% Example of including a reference
-%   \bibitem{MyArrangement_MyThorn_Author99}
-%   {J. Author, {\em The Title of the Book, Journal, or periodical}, 1 (1999),
-%   1--16. {\tt http://www.nowhere.com/}}
-%
-% *======================================================================*
-
-% If you are using CVS use this line to give version information
-% $Header$
-
 \documentclass{article}
 
 % Use the Cactus ThornGuide style file
@@ -82,14 +12,14 @@
 \author{Deborah Ferguson}
 
 % The title of the document (not necessarily the name of the Thorn)
-\title{CCE_Export}
+\title{CCE Export}
 
 % the date your document was last changed, if your document is in CVS,
 % please use:
 %    \date{$ $Date$ $}
 % when using git instead record the commit ID:
 %    \date{\gitrevision{<path-to-your-.git-directory>}}
-\date{\gitrevision{<path-to-your-.git-directory>}}
+\date{23 April 2025}
 
 \maketitle
 
@@ -112,7 +42,7 @@
 \section{Introduction}
 
 This thorn allows the user to output the metric, lapse, and shift data in a format which can be fed directly into SpECTRE's
-Cauchy Characteristic Evolution code (documentation for that code here: https://spectre-code.org/tutorial_cce.html).
+Cauchy Characteristic Evolution code (documentation for that code here: \url{https://spectre-code.org/tutorial_cce.html}).
 Doing so enables the evolution of gravitational radiation to spatial and temporal infinity as well as the direct extraction
 of gravitational wave strain.
 
@@ -121,6 +51,7 @@ of gravitational wave strain.
 The data is output into an hdf5 file for each radius. Within this h5 file are datasets for the metric, lapse, shift, and
 their respective radial and time derivatives:
 
+\begin{verbatim}
 gxx.dat, gxy.dat, gxz.dat, gyy.dat, gyz.dat, gzz.dat
 Drgxx.dat, Drgxy.dat, Drgxz.dat, Drgyy.dat, Drgyz.dat, Drgzz.dat
 Dtgxx.dat, Dtgxy.dat, Dtgxz.dat, Dtgyy.dat, Dtgyz.dat, Dtgzz.dat
@@ -130,15 +61,16 @@ DtShiftx.dat, DtShifty.dat, DtShiftz.dat
 Lapse.dat
 DrLapse.dat
 DtLapse.dat
+\end{verbatim}
 
 Each quantity is decomposed using spin weight 0 spherical harmonics. The first column denotes the time, and the remaining
 columns are the real and imaginary coefficients for the modes in m-changes-fastest order:
 
+\begin{verbatim}
 "time", "Re(0,0)", "Im(0,0)", "Re(1,-1)", "Im(1,-1)", "Re(1,0)", "Im(1,0)",
 "Re(1,1)", "Im(1,1)", "Re(2,-2)", "Im(2,-2)", "Re(2,-1)", "Im(2,-1)", "Re(2,0)",
 "Im(2,0)", "Re(2,1)", "Im(2,1)", "Re(2,2)", "Im(2,2)", ...
-
-Spherical harmonic convention: ?
+\end{verbatim}
 
 The radial derivatives are computed by transforming the cartesian derivatives returned from the interpolater. 
 The time derivatives of the lapse and shift are obtained as grid variables, and the time derivative of the metric
@@ -148,12 +80,12 @@ is computed from the extrinsic curvature.
 
 \subsection{Obtaining This Thorn}
 
-This thorn can be obtained at https://github.com/deborahferguson/CCE_Export and is included as part of the EinsteinToolkit.
+This thorn can be obtained at https://github.com/deborahferguson/CCE\_Export and is included as part of the EinsteinToolkit.
 
 \subsection{Basic Usage}
 
 The user specifies how many radii they would like to extract at (\texttt{nradii}) and the value of each of those radii 
-in M (\texttt{radius\[\]}). The user should also specify how often they want to output the data in iterations (\texttt{out\_every}).
+in M (\texttt{radius[]}). The user should also specify how often they want to output the data in iterations (\texttt{out\_every}).
 Optionally, the user can also provide a specific location to output the files (\texttt{out\_dir}) as well as the desired 
 number of iterations to preallocate in the h5 files (\texttt{hdf5\_chunk\_size}).
 
@@ -166,11 +98,13 @@ compatible with this thorn.
 
 \subsection{Examples}
 
+\begin{verbatim}
 CCE_Export::nradii       = 3
 CCE_Export::radius[0]    = 100.00
 CCE_Export::radius[1]    = 150.00
 CCE_Export::radius[2]    = 200.00
 CCE_Export::out_every    = 32
+\end{verbatim}
 
 \subsection{Support and Feedback}
 
