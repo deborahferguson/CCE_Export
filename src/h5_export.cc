@@ -95,9 +95,10 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
     H5Sclose(space);
     H5Tclose(str_type);
 
-    // Free the allocated strings
-    for (auto &str : legend) {
-      free(const_cast<char *>(str));
+    for (size_t i = 0; i < legend.size(); i++) {
+      if (legend[i] != nullptr && strcmp(legend[i], "time") != 0) {
+        free((void*)legend[i]);
+      }
     }
   }
 

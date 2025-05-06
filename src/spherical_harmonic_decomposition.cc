@@ -78,8 +78,8 @@ void Integrate(int array_size, int ntheta, int nphi, vector<CCTK_REAL> &array1r,
   CCTK_REAL dph = ph[iu] - ph[il];
 
   // Construct an array for the real integrand
-  auto fr = std::make_unique<CCTK_REAL []>(array_size);
-  auto fi = std::make_unique<CCTK_REAL []>(array_size);
+  static auto fr = std::make_unique<CCTK_REAL []>(array_size);
+  static auto fi = std::make_unique<CCTK_REAL []>(array_size);
 
   // the below calculations take the integral of conj(array1)*array2*sin(th)
   for (int i = 0; i < array_size; i++) {
