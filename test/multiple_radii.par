@@ -8,13 +8,9 @@ ActiveThorns = "Carpet"
 ActiveThorns = "CarpetInterp CarpetReduce"
 
 Carpet::domain_from_coordbase = yes
-Carpet::max_refinement_levels = 10
 
 driver::ghost_size       = 3
 Carpet::use_buffer_zones = yes
-
-Carpet::prolongation_order_space = 5
-Carpet::prolongation_order_time  = 2
 
 Carpet::convergence_level = 0
 
@@ -59,8 +55,6 @@ ActiveThorns = "MoL Time"
 MoL::ODE_Method             = "RK4"
 MoL::MoL_Intermediate_Steps = 4
 MoL::MoL_Num_Scratch_Levels = 1
-
-Carpet::time_refinement_factors = "[1, 1, 2, 4, 8, 16, 32, 64, 128, 256]"
 
 Time::dtfac = 0.25
 

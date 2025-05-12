@@ -89,6 +89,17 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
       }
     }
     H5Awrite(attr, str_type, legend.data());
+
+    // Clean up by closing the attribute, dataspace, and datatype
+    H5Aclose(attr);
+    H5Sclose(space);
+    H5Tclose(str_type);
+
+    for (size_t i = 0; i < legend.size(); i++) {
+      if (legend[i] != nullptr && strcmp(legend[i], "time") != 0) {
+        free((void*)legend[i]);
+      }
+    }
   }
 
   hid_t filespace = H5Dget_space(dataset);

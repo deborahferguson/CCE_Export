@@ -15,6 +15,9 @@ void CCE_Export(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTS;
   DECLARE_CCTK_PARAMETERS;
 
+  if (out_every == 0 || cctk_iteration % out_every != 0)
+    return;
+
   const int ntheta = 120;
   const int nphi = 240;
   const int array_size = (ntheta + 1) * (nphi + 1);

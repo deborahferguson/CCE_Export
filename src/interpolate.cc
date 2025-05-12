@@ -56,6 +56,8 @@ void Interpolate_On_Sphere_With_Derivatives(
                                : 0, // Only the 0 processor needs the points
       CCTK_VARIABLE_REAL, interp_coords, num_input_arrays, input_array_indices,
       num_output_arrays, output_array_types, output_arrays);
+
+  Util_TableDestroy(param_table_handle);
 }
 
 void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
@@ -106,6 +108,8 @@ void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
                                : 0, // Only the 0 processor needs the points
       CCTK_VARIABLE_REAL, interp_coords, num_input_arrays, input_array_indices,
       num_output_arrays, output_array_types, output_arrays);
+
+  Util_TableDestroy(param_table_handle);
 }
 
 void Extract_Metric_Shift_Lapse_On_Sphere(
