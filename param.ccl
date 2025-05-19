@@ -16,11 +16,22 @@ CCTK_REAL radius[101] "Radii to export the metric data on" STEERABLE=recover
   0.0:* :: "Extraction radius"
 } 0.0
 
-STRING out_dir "Output directory for Extract's files, overrides IO::out_dir" STEERABLE = RECOVER
+STRING out_dir "Output directory for CCE_Export's files, overrides IO::out_dir" STEERABLE = RECOVER
 {
   ".+" :: "A valid directory name"
   "^$" :: "An empty string to choose the default from IO::out_dir"
 } ""
+
+STRING base_file_name "Base file name for CCE_Export's files, will be appended by 'R' and then the \
+  worldtube radius with 2 sig figs after the decimal" STEERABLE = RECOVER
+{
+  ".+" :: "A valid base file name"
+} "CCE_Export"
+
+STRING extension "Extension for CCE_Extract's files" STEERABLE = RECOVER
+{
+  ".+" :: "A nonempty string"
+} "h5"
 
 CCTK_INT hdf5_chunk_size "How many iterations to preallocate in extensible HDF5 datasets"
 {

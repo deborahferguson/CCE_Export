@@ -161,8 +161,8 @@ void Output_Decomposed_Metric_Data(
   static map<string, bool> checked;
 
   ostringstream basename;
-  basename << "CCE_Export_R" << setiosflags(ios::fixed) << setprecision(2)
-           << rad << ".h5";
+  basename << base_file_name << "R" << setiosflags(ios::fixed) << setprecision(2)
+           << rad << "." << extension;
   string output_name = (fs::path(my_out_dir) / basename.str()).string();
 
   hid_t file;

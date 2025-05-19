@@ -1,4 +1,4 @@
-POSTPROC hdf5_to_ascii h5$
+POSTPROC cce_export_hdf5_to_ascii h5$
 EXTENSIONS h5
 
 TEST multiple_radii
