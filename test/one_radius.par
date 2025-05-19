@@ -132,6 +132,8 @@ CCE_Export::radius[0]    = 10.00
 
 CCE_Export::out_every    = 1
 
+CCE_Export::extension =	 "cceh5"
+
 IO::out_dir       = $parfile
 IO::out_fileinfo  = "axis labels"
 IO::parfile_write = "no"
