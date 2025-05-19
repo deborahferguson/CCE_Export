@@ -1,5 +1,5 @@
 Cactus::terminate       = "iteration"
-Cactus::cctk_itlast = 3
+Cactus::cctk_itlast = 1
 
 ActiveThorns = "AEILocalInterp"
 ActiveThorns = "HDF5"
@@ -132,6 +132,8 @@ CCE_Export::radius[0]    = 10.00
 
 CCE_Export::out_every    = 1
 CCE_Export::hdf5_chunk_size = 10
+
+CCE_Export::extension = "cceh5"
 
 IO::out_dir       = $parfile
 IO::out_fileinfo  = "axis labels"
