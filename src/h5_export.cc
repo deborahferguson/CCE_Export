@@ -1,7 +1,12 @@
 #include "h5_export.hh"
-#include <filesystem>
 
+#if defined __cpp_lib_filesystem && __cpp_lib_filesystem < 201703L
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#else
+#include <filesystem>
 namespace fs = std::filesystem;
+#endif
 
 namespace CCE_export {
 
