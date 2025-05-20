@@ -44,7 +44,7 @@ void Create_Dataset(CCTK_ARGUMENTS, hid_t file, string datasetname,
   hid_t dataset = -1;
 
   if (dataset_exists(file, datasetname)) {
-    dataset = H5Dopen(file, datasetname.c_str());
+    HDF5_ERROR(dataset = H5Dopen(file, datasetname.c_str()));
   } else {
     hsize_t dims[2] = {0, static_cast<hsize_t>(2 * mode_count + 1)};
     hsize_t maxdims[2] = {H5S_UNLIMITED,
@@ -169,10 +169,10 @@ void Output_Decomposed_Metric_Data(
 
   if (!fs::exists(output_name) ||
       (!checked[output_name] && IO_TruncateOutputFiles(cctkGH))) {
-    file =
-        H5Fcreate(output_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    HDF5_ERROR(file =
+	       H5Fcreate(output_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT));
   } else {
-    file = H5Fopen(output_name.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+    HDF5_ERROR(file = H5Fopen(output_name.c_str(), H5F_ACC_RDWR, H5P_DEFAULT));
   }
 
   checked[output_name] = true;
