@@ -1,0 +1,13 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Ferguson"
+    given-names: "Deborah"
+    orcid: "https://orcid.org/0000-0002-4406-591X"
+  - family-names: "Ghadiri"
+    given-names: "Noora"
+    orcid: "https://orcid.org/0000-0001-9162-4449"
+title: "CCE_Export"
+version: v2025.5
+date-released: 2025-05-23
+url: "https://github.com/deborahferguson/CCE_Export"
