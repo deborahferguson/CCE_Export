@@ -1,1 +1,1 @@
-SRCS=cce_export.cc interpolate.cc h5_export.cc utils.cc spherical_harmonic_decomposition.cc
+SRCS=cce_export.cxx interpolate.cxx h5_export.cxx utils.cxx spherical_harmonic_decomposition.cxx

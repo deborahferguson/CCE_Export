@@ -6,7 +6,7 @@
 #include "cctk_Functions.h"
 #include "cctk_Parameters.h"
 
-#include "utils.hh"
+#include "utils.hxx"
 
 #include <string.h>
 #include <vector>

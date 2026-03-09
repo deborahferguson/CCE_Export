@@ -1,4 +1,4 @@
-#include "spherical_harmonic_decomposition.hh"
+#include "spherical_harmonic_decomposition.hxx"
 
 namespace CCE_export {
 

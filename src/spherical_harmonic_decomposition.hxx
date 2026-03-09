@@ -2,7 +2,7 @@
 #define CCE_EXPORT_SPHERICAL_HARMONIC_DECOMPOSITION_HH
 
 #include "cctk.h"
-#include "utils.hh"
+#include "utils.hxx"
 
 #include <vector>
 #include <memory>

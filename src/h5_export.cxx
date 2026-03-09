@@ -1,4 +1,4 @@
-#include "h5_export.hh"
+#include "h5_export.hxx"
 
 #if defined __cpp_lib_filesystem && __cpp_lib_filesystem < 201703L
 #include <experimental/filesystem>

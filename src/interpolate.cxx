@@ -1,4 +1,4 @@
-#include "interpolate.hh"
+#include "interpolate.hxx"
 
 namespace CCE_export {
 
@@ -21,17 +21,17 @@ void Interpolate_On_Sphere_With_Derivatives(
 
   const CCTK_INT input_array_indices[1] = {variable_index};
 
-  const CCTK_INT output_array_types[4] = {
-      CCTK_VARIABLE_REAL, CCTK_VARIABLE_REAL, CCTK_VARIABLE_REAL,
-      CCTK_VARIABLE_REAL};
+  //const CCTK_INT output_array_types [4] = {
+  //    CCTK_VARIABLE_REAL, CCTK_VARIABLE_REAL, CCTK_VARIABLE_REAL,
+  //    CCTK_VARIABLE_REAL};
 
   void *output_arrays[4] = {static_cast<void *>(sphere_values.data()),
                             static_cast<void *>(sphere_dx.data()),
                             static_cast<void *>(sphere_dy.data()),
                             static_cast<void *>(sphere_dz.data())};
 
-  const int operator_handle =
-      CCTK_InterpHandle("Hermite polynomial interpolation");
+  //const int operator_handle =
+  //    CCTK_InterpHandle("Hermite polynomial interpolation");
 
   int param_table_handle = Util_TableCreate(UTIL_TABLE_FLAGS_DEFAULT);
   Util_TableSetFromString(
@@ -47,15 +47,34 @@ void Interpolate_On_Sphere_With_Derivatives(
   Util_TableSetIntArray(param_table_handle, 4, operation_codes,
                         "operation_codes");
 
-  const int coord_system_handle = CCTK_CoordSystemHandle("cart3d");
+  const CCTK_INT coord_system_handle = 0; // Noora: CCTK_CoordSystemHandle("cart3d") --> 0 
 
-  CCTK_InterpGridArrays(
-      cctkGH, num_dims, operator_handle, param_table_handle,
-      coord_system_handle,
-      CCTK_MyProc(cctkGH) == 0 ? array_size
-                               : 0, // Only the 0 processor needs the points
-      CCTK_VARIABLE_REAL, interp_coords, num_input_arrays, input_array_indices,
-      num_output_arrays, output_array_types, output_arrays);
+  const CCTK_INT interp_coords_type = 0; // Noora added, this was : CCTK_VARIABLE_REAL
+
+  //const int output_array_types[4] = {0, 0, 0, 0}; // Noora added 
+ 
+  //int operator_handle = 0; // Noora added
+
+  const CCTK_INT output_array_types[4] = {0, 0, 0, 0}; //Noora added
+
+  const CCTK_INT local_interp_handle = 0; //Noora added 
+
+ //Noora: replaced
+ //CCK_InterpGridArrays (
+ //	cctkGH, num dims, operator_handle, param_table handle,
+ //	coord_system_handle,
+ //	CC_MyProc(cctkGH) == 0 ? array_size
+ //			       : 0, // Only the 0 processor needs the points
+ //	CCTK_VARIABLE_REAL, interp_coords, num_input_arrays, input_array_indices,
+ //	num_output_arrays, output_array_types, output_arrays);
+ // with: 
+ // (kept original naming conventions)
+  DriverInterpolate(
+	cctkGH, num_dims, local_interp_handle, param_table_handle, coord_system_handle,
+	CCTK_MyProc(cctkGH) == 0 ? array_size
+                                 : 0, // Only the 0 processor needs the points
+ 	interp_coords_type, interp_coords, num_input_arrays, input_array_indices,
+	num_output_arrays, output_array_types, output_arrays);
 
   Util_TableDestroy(param_table_handle);
 }
@@ -78,12 +97,12 @@ void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
 
   const CCTK_INT input_array_indices[1] = {variable_index};
 
-  const CCTK_INT output_array_types[1] = {CCTK_VARIABLE_REAL};
+  //const CCTK_INT output_array_types[1] = {0}; // Noora: changed rhs to 0
 
   void *output_arrays[1] = {static_cast<void*>(sphere_values.data())};
 
-  const int operator_handle =
-      CCTK_InterpHandle("Hermite polynomial interpolation");
+  //const int operator_handle =
+  //    CCTK_InterpHandle("Hermite polynomial interpolation");
 
   int param_table_handle = Util_TableCreate(UTIL_TABLE_FLAGS_DEFAULT);
   Util_TableSetFromString(
@@ -99,16 +118,33 @@ void Interpolate_On_Sphere(CCTK_ARGUMENTS, vector<CCTK_REAL> &xs,
   Util_TableSetIntArray(param_table_handle, 1, operation_codes,
                         "operation_codes");
 
-  const int coord_system_handle = CCTK_CoordSystemHandle("cart3d");
+  const CCTK_INT coord_system_handle = 0; // Noora: CCTK_CoordSystemHandle("cart3d") --> 0 
 
-  CCTK_InterpGridArrays(
-      cctkGH, num_dims, operator_handle, param_table_handle,
-      coord_system_handle,
-      CCTK_MyProc(cctkGH) == 0 ? array_size
-                               : 0, // Only the 0 processor needs the points
-      CCTK_VARIABLE_REAL, interp_coords, num_input_arrays, input_array_indices,
-      num_output_arrays, output_array_types, output_arrays);
+  const CCTK_INT interp_coords_type = 0; // Noora added, this was : CCTK_VARIABLE_REAL
 
+  const CCTK_INT output_array_types[1] = {0}; //Noora re-added here
+
+  const CCTK_INT local_interp_handle = 0; // Noora added
+
+  //const int output_array_types[1] = {0}; // Noora added  
+
+  //int operator_handle = 0; // Noora added
+//Noora: replaced
+  //CCTK_InterpGridArrays(
+  //    cctkGH, num_dims, operator_handle, param_table_handle,
+  //    coord_system_handle,
+  //    CCTK_MyProc(cctkGH) == 0 ? array_size
+  //                             : 0, // Only the 0 processor needs the points
+  //    CCTK_VARIABLE_REAL, interp_coords, num_input_arrays, input_array_indices,
+  //    num_output_arrays, output_array_types, output_arrays);
+// with:
+// (kept original naming conventions)
+DriverInterpolate(
+        cctkGH, num_dims, local_interp_handle, param_table_handle, coord_system_handle,
+        CCTK_MyProc(cctkGH) == 0 ? array_size
+                                 : 0, // Only the 0 processor needs the points
+  	interp_coords_type, interp_coords, num_input_arrays, input_array_indices,
+        num_output_arrays, output_array_types, output_arrays);      
   Util_TableDestroy(param_table_handle);
 }
 
@@ -161,12 +197,12 @@ void Extract_Metric_Shift_Lapse_On_Sphere(
       // interpolate extrinsic curvature
       Interpolate_On_Sphere_With_Derivatives(
           CCTK_PASS_CTOC, xs, ys, zs,
-          "ADMBase::k" + first_component + second_component, k.at(i).at(j),
+          "ADMBaseX::k" + first_component + second_component, k.at(i).at(j),
           dx_k.at(i).at(j), dy_k.at(i).at(j), dz_k.at(i).at(j), array_size);
       // interpolate metric
       Interpolate_On_Sphere_With_Derivatives(
           CCTK_PASS_CTOC, xs, ys, zs,
-          "ADMBase::g" + first_component + second_component, g.at(i).at(j),
+          "ADMBaseX::g" + first_component + second_component, g.at(i).at(j),
           dx_g.at(i).at(j), dy_g.at(i).at(j), dz_g.at(i).at(j), array_size);
       // compute dr_g
       for (int array_index = 0; array_index < array_size; array_index++) {
@@ -186,11 +222,11 @@ void Extract_Metric_Shift_Lapse_On_Sphere(
     string component = index_to_component[i];
     // interpolate shift
     Interpolate_On_Sphere_With_Derivatives(
-        CCTK_PASS_CTOC, xs, ys, zs, "ADMBase::beta" + component, beta.at(i),
+        CCTK_PASS_CTOC, xs, ys, zs, "ADMBaseX::beta" + component, beta.at(i),
         dx_beta.at(i), dy_beta.at(i), dz_beta.at(i), array_size);
     // interpolate time derivative of shift
     Interpolate_On_Sphere(CCTK_PASS_CTOC, xs, ys, zs,
-                          "ADMBase::dtbeta" + component, dt_beta.at(i),
+                          "ADMBaseX::dtbeta" + component, dt_beta.at(i),
                           array_size);
     // compute dr_beta
     for (int array_index = 0; array_index < array_size; array_index++) {
@@ -205,10 +241,10 @@ void Extract_Metric_Shift_Lapse_On_Sphere(
 
   // interpolate lapse
   Interpolate_On_Sphere_With_Derivatives(CCTK_PASS_CTOC, xs, ys, zs,
-                                         "ADMBase::alp", alpha, dx_alpha,
+                                         "ADMBaseX::alp", alpha, dx_alpha,
                                          dy_alpha, dz_alpha, array_size);
   // interpolate time derivative of lapse
-  Interpolate_On_Sphere(CCTK_PASS_CTOC, xs, ys, zs, "ADMBase::dtalp", dt_alpha,
+  Interpolate_On_Sphere(CCTK_PASS_CTOC, xs, ys, zs, "ADMBaseX::dtalp", dt_alpha,
                         array_size);
   // compute dr_alpha
   for (int array_index = 0; array_index < array_size; array_index++) {

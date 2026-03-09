@@ -1,7 +1,7 @@
-#include "cce_export.hh"
-#include "interpolate.hh"
-#include "h5_export.hh"
-#include "spherical_harmonic_decomposition.hh"
+#include "cce_export.hxx"
+#include "interpolate.hxx"
+#include "h5_export.hxx"
+#include "spherical_harmonic_decomposition.hxx"
 #include <vector>
 #include <sys/stat.h>
 #include <iomanip>

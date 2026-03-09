@@ -2,7 +2,7 @@
 
 schedule CCE_Export at CCTK_ANALYSIS
 {
-  READS: ADMBase::metric(everywhere), ADMBase::curv(everywhere), ADMBase::lapse(everywhere), ADMBase::shift(everywhere), ADMBase::dtlapse(everywhere), ADMBase::dtshift(everywhere)
+  READS: ADMBaseX::metric(everywhere), ADMBaseX::curv(everywhere), ADMBaseX::lapse(everywhere), ADMBaseX::shift(everywhere), ADMBaseX::dtlapse(everywhere), ADMBaseX::dtshift(everywhere)
   LANG: C
   OPTIONS: GLOBAL
 } "Export metric data on sphere for CCE"
