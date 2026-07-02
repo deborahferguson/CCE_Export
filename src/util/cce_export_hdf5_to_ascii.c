@@ -14,7 +14,6 @@
 
 int main(int argc, char *argv[]) {
   // Initialize HDF5 library
-  CHECK_ERROR(H5dont_atexit());
   hid_t file_id = -1, group_id = -1, dataset_id = -1;
   herr_t status;
 
